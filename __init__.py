@@ -15,7 +15,7 @@ bl_info = {
     "name": "Blender Retouch",
     "author": "kokome_a",
     "description": "",
-    "blender": (2, 80, 0),
+    "blender": (4, 5, 0),
     "version": (0, 0, 2),
     "location": "",
     "warning": "",

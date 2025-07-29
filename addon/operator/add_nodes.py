@@ -305,7 +305,8 @@ class RETOUCH_OT_add_nodes(Operator):
     def execute(self, context):
         if context.scene.use_nodes is False:
             bpy.context.scene.use_nodes = True
-            set_nodes()
+        bpy.context.scene.render.compositor_device = 'GPU'
+        set_nodes()
         return {"FINISHED"}
 classes = (
     RETOUCH_OT_add_nodes,
