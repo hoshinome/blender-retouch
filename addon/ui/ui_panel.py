@@ -8,7 +8,7 @@ class RetouchPanelMixin:
     bl_category = panel_label
 
 def nodes_get(name, inputs):
-    scene = bpy.data.scenes["Scene"]
+    scene = bpy.context.scene
     node_tree = scene.node_tree
     node = node_tree.nodes.get(name)
     if node:

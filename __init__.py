@@ -16,7 +16,7 @@ bl_info = {
     "author": "kokome_a",
     "description": "",
     "blender": (4, 5, 0),
-    "version": (0, 0, 2),
+    "version": (0, 0, 3),
     "location": "",
     "warning": "",
     "category": "Generic",

@@ -31,42 +31,127 @@ def set_nodes():
         #scene_1 interface
     
         #initialize scene_1 nodes
-        #node Composite
-        composite = scene_1.nodes.new("CompositorNodeComposite")
-        composite.name = "Composite"
-        composite.use_alpha = True
-        #Alpha
-        composite.inputs[1].default_value = 1.0
-    
-        #node Render Layers
-        render_layers = scene_1.nodes.new("CompositorNodeRLayers")
-        render_layers.name = "Render Layers"
-        render_layers.layer = 'ViewLayer'
-    
-        #node カラーバランス
-        _______ = scene_1.nodes.new("CompositorNodeColorBalance")
-        _______.name = "カラーバランス"
-        _______.correction_method = 'LIFT_GAMMA_GAIN'
-        _______.gain = mathutils.Color((1.0, 1.0, 1.0))
-        _______.gamma = mathutils.Color((1.0, 1.0, 1.0))
-        _______.lift = mathutils.Color((1.0, 1.0, 1.0))
-        #Fac
-        _______.inputs[0].default_value = 1.0
-    
-        #node 輝度/コントラスト
-        _________ = scene_1.nodes.new("CompositorNodeBrightContrast")
-        _________.name = "輝度/コントラスト"
-        _________.use_premultiply = True
-        #Bright
-        _________.inputs[1].default_value = 0.0
-        #Contrast
-        _________.inputs[2].default_value = 1.0
-    
-        #node 露出
-        __ = scene_1.nodes.new("CompositorNodeExposure")
-        __.name = "露出"
+        #node Exposure
+        exposure = scene_1.nodes.new("CompositorNodeExposure")
+        exposure.name = "Exposure"
         #Exposure
-        __.inputs[1].default_value = 1.0
+        exposure.inputs[1].default_value = 0.0
+    
+        #node Brightness/Contrast
+        brightness_contrast = scene_1.nodes.new("CompositorNodeBrightContrast")
+        brightness_contrast.name = "Brightness/Contrast"
+        #Bright
+        brightness_contrast.inputs[1].default_value = 0.0
+        #Contrast
+        brightness_contrast.inputs[2].default_value = 0.0
+    
+        #node Color Balance
+        color_balance = scene_1.nodes.new("CompositorNodeColorBalance")
+        color_balance.name = "Color Balance"
+        color_balance.correction_method = 'LIFT_GAMMA_GAIN'
+        color_balance.input_whitepoint = mathutils.Color((0.9991403222084045, 1.0003736019134521, 0.998818039894104))
+        color_balance.output_whitepoint = mathutils.Color((0.9991403222084045, 1.0003736019134521, 0.998818039894104))
+        #Fac
+        color_balance.inputs[0].default_value = 1.0
+        #Base Lift
+        color_balance.inputs[2].default_value = 0.0
+        #Color Lift
+        color_balance.inputs[3].default_value = (1.0, 1.0, 1.0, 1.0)
+        #Base Gamma
+        color_balance.inputs[4].default_value = 1.0
+        #Color Gamma
+        color_balance.inputs[5].default_value = (1.0, 1.0, 1.0, 1.0)
+        #Base Gain
+        color_balance.inputs[6].default_value = 1.0
+        #Color Gain
+        color_balance.inputs[7].default_value = (1.0, 1.0, 1.0, 1.0)
+    
+        #node RGB Curves
+        rgb_curves = scene_1.nodes.new("CompositorNodeCurveRGB")
+        rgb_curves.name = "RGB Curves"
+        #mapping settings
+        rgb_curves.mapping.extend = 'EXTRAPOLATED'
+        rgb_curves.mapping.tone = 'STANDARD'
+        rgb_curves.mapping.black_level = (0.0, 0.0, 0.0)
+        rgb_curves.mapping.white_level = (1.0, 1.0, 1.0)
+        rgb_curves.mapping.clip_min_x = 0.0
+        rgb_curves.mapping.clip_min_y = 0.0
+        rgb_curves.mapping.clip_max_x = 1.0
+        rgb_curves.mapping.clip_max_y = 1.0
+        rgb_curves.mapping.use_clip = True
+        #curve 0
+        rgb_curves_curve_0 = rgb_curves.mapping.curves[0]
+        rgb_curves_curve_0_point_0 = rgb_curves_curve_0.points[0]
+        rgb_curves_curve_0_point_0.location = (0.0, 0.0)
+        rgb_curves_curve_0_point_0.handle_type = 'AUTO'
+        rgb_curves_curve_0_point_1 = rgb_curves_curve_0.points[1]
+        rgb_curves_curve_0_point_1.location = (1.0, 1.0)
+        rgb_curves_curve_0_point_1.handle_type = 'AUTO'
+        #curve 1
+        rgb_curves_curve_1 = rgb_curves.mapping.curves[1]
+        rgb_curves_curve_1_point_0 = rgb_curves_curve_1.points[0]
+        rgb_curves_curve_1_point_0.location = (0.0, 0.0)
+        rgb_curves_curve_1_point_0.handle_type = 'AUTO'
+        rgb_curves_curve_1_point_1 = rgb_curves_curve_1.points[1]
+        rgb_curves_curve_1_point_1.location = (1.0, 1.0)
+        rgb_curves_curve_1_point_1.handle_type = 'AUTO'
+        #curve 2
+        rgb_curves_curve_2 = rgb_curves.mapping.curves[2]
+        rgb_curves_curve_2_point_0 = rgb_curves_curve_2.points[0]
+        rgb_curves_curve_2_point_0.location = (0.0, 0.0)
+        rgb_curves_curve_2_point_0.handle_type = 'AUTO'
+        rgb_curves_curve_2_point_1 = rgb_curves_curve_2.points[1]
+        rgb_curves_curve_2_point_1.location = (1.0, 1.0)
+        rgb_curves_curve_2_point_1.handle_type = 'AUTO'
+        #curve 3
+        rgb_curves_curve_3 = rgb_curves.mapping.curves[3]
+        rgb_curves_curve_3_point_0 = rgb_curves_curve_3.points[0]
+        rgb_curves_curve_3_point_0.location = (0.0, 0.0)
+        rgb_curves_curve_3_point_0.handle_type = 'AUTO'
+        rgb_curves_curve_3_point_1 = rgb_curves_curve_3.points[1]
+        rgb_curves_curve_3_point_1.location = (1.0, 1.0)
+        rgb_curves_curve_3_point_1.handle_type = 'AUTO'
+        #update curve after changes
+        rgb_curves.mapping.update()
+        #Fac
+        rgb_curves.inputs[0].default_value = 1.0
+        #Black Level
+        rgb_curves.inputs[2].default_value = (0.0, 0.0, 0.0, 1.0)
+        #White Level
+        rgb_curves.inputs[3].default_value = (1.0, 1.0, 1.0, 1.0)
+    
+        #node Color Balance.001
+        color_balance_001 = scene_1.nodes.new("CompositorNodeColorBalance")
+        color_balance_001.name = "Color Balance.001"
+        color_balance_001.correction_method = 'LIFT_GAMMA_GAIN'
+        color_balance_001.input_whitepoint = mathutils.Color((0.9991403222084045, 1.0003736019134521, 0.998818039894104))
+        color_balance_001.output_whitepoint = mathutils.Color((0.9991403222084045, 1.0003736019134521, 0.998818039894104))
+        #Fac
+        color_balance_001.inputs[0].default_value = 1.0
+        #Base Lift
+        color_balance_001.inputs[2].default_value = 0.0
+        #Color Lift
+        color_balance_001.inputs[3].default_value = (1.0, 1.0, 1.0, 1.0)
+        #Base Gamma
+        color_balance_001.inputs[4].default_value = 1.0
+        #Color Gamma
+        color_balance_001.inputs[5].default_value = (1.0, 1.0, 1.0, 1.0)
+        #Base Gain
+        color_balance_001.inputs[6].default_value = 1.0
+        #Color Gain
+        color_balance_001.inputs[7].default_value = (1.0, 1.0, 1.0, 1.0)
+    
+        #node HSV(色相/彩度/明度)
+        hsv__________ = scene_1.nodes.new("CompositorNodeHueSat")
+        hsv__________.name = "HSV(色相/彩度/明度)"
+        #Hue
+        hsv__________.inputs[1].default_value = 0.5
+        #Saturation
+        hsv__________.inputs[2].default_value = 1.0
+        #Value
+        hsv__________.inputs[3].default_value = 1.0
+        #Fac
+        hsv__________.inputs[4].default_value = 1.0
     
         #node 色相補正
         ____ = scene_1.nodes.new("CompositorNodeHueCorrect")
@@ -152,150 +237,71 @@ def set_nodes():
         #Fac
         ____.inputs[0].default_value = 1.0
     
-        #node RGBカーブ
-        rgb___ = scene_1.nodes.new("CompositorNodeCurveRGB")
-        rgb___.name = "RGBカーブ"
-        #mapping settings
-        rgb___.mapping.extend = 'EXTRAPOLATED'
-        rgb___.mapping.tone = 'STANDARD'
-        rgb___.mapping.black_level = (0.0, 0.0, 0.0)
-        rgb___.mapping.white_level = (1.0, 1.0, 1.0)
-        rgb___.mapping.clip_min_x = 0.0
-        rgb___.mapping.clip_min_y = 0.0
-        rgb___.mapping.clip_max_x = 1.0
-        rgb___.mapping.clip_max_y = 1.0
-        rgb___.mapping.use_clip = True
-        #curve 0
-        rgb____curve_0 = rgb___.mapping.curves[0]
-        rgb____curve_0_point_0 = rgb____curve_0.points[0]
-        rgb____curve_0_point_0.location = (0.0, 0.0)
-        rgb____curve_0_point_0.handle_type = 'AUTO'
-        rgb____curve_0_point_1 = rgb____curve_0.points[1]
-        rgb____curve_0_point_1.location = (1.0, 1.0)
-        rgb____curve_0_point_1.handle_type = 'AUTO'
-        #curve 1
-        rgb____curve_1 = rgb___.mapping.curves[1]
-        rgb____curve_1_point_0 = rgb____curve_1.points[0]
-        rgb____curve_1_point_0.location = (0.0, 0.0)
-        rgb____curve_1_point_0.handle_type = 'AUTO'
-        rgb____curve_1_point_1 = rgb____curve_1.points[1]
-        rgb____curve_1_point_1.location = (1.0, 1.0)
-        rgb____curve_1_point_1.handle_type = 'AUTO'
-        #curve 2
-        rgb____curve_2 = rgb___.mapping.curves[2]
-        rgb____curve_2_point_0 = rgb____curve_2.points[0]
-        rgb____curve_2_point_0.location = (0.0, 0.0)
-        rgb____curve_2_point_0.handle_type = 'AUTO'
-        rgb____curve_2_point_1 = rgb____curve_2.points[1]
-        rgb____curve_2_point_1.location = (1.0, 1.0)
-        rgb____curve_2_point_1.handle_type = 'AUTO'
-        #curve 3
-        rgb____curve_3 = rgb___.mapping.curves[3]
-        rgb____curve_3_point_0 = rgb____curve_3.points[0]
-        rgb____curve_3_point_0.location = (0.0, 0.0)
-        rgb____curve_3_point_0.handle_type = 'AUTO'
-        rgb____curve_3_point_1 = rgb____curve_3.points[1]
-        rgb____curve_3_point_1.location = (1.0, 1.0)
-        rgb____curve_3_point_1.handle_type = 'AUTO'
-        #update curve after changes
-        rgb___.mapping.update()
-        #Fac
-        rgb___.inputs[0].default_value = 1.0
-        #Black Level
-        rgb___.inputs[2].default_value = (0.0, 0.0, 0.0, 1.0)
-        #White Level
-        rgb___.inputs[3].default_value = (1.0, 1.0, 1.0, 1.0)
+        #node Composite
+        composite = scene_1.nodes.new("CompositorNodeComposite")
+        composite.name = "Composite"
     
-        #node 画像
-        ___1 = scene_1.nodes.new("CompositorNodeImage")
-        ___1.name = "画像"
-        ___1.frame_duration = 1
-        ___1.frame_offset = 0
-        ___1.frame_start = 1
-        ___1.use_auto_refresh = True
-        ___1.use_cyclic = False
-        ___1.use_straight_alpha_output = False
+        #node Viewer
+        viewer = scene_1.nodes.new("CompositorNodeViewer")
+        viewer.name = "Viewer"
+        viewer.ui_shortcut = 0
     
-        #node ビューアー
-        _____ = scene_1.nodes.new("CompositorNodeViewer")
-        _____.name = "ビューアー"
-        _____.use_alpha = True
-        #Alpha
-        _____.inputs[1].default_value = 1.0
-    
-        #node カラーバランス.001
-        ________001 = scene_1.nodes.new("CompositorNodeColorBalance")
-        ________001.name = "カラーバランス.001"
-        ________001.correction_method = 'LIFT_GAMMA_GAIN'
-        ________001.gain = mathutils.Color((1.0, 1.0, 1.0))
-        ________001.gamma = mathutils.Color((1.0, 1.0, 1.0))
-        ________001.lift = mathutils.Color((1.0, 1.0, 1.0))
-        #Fac
-        ________001.inputs[0].default_value = 1.0
-    
-        #node HSV(色相/彩度/明度)
-        hsv__________ = scene_1.nodes.new("CompositorNodeHueSat")
-        hsv__________.name = "HSV(色相/彩度/明度)"
-        #Hue
-        hsv__________.inputs[1].default_value = 0.5
-        #Saturation
-        hsv__________.inputs[2].default_value = 1.0
-        #Value
-        hsv__________.inputs[3].default_value = 1.0
-        #Fac
-        hsv__________.inputs[4].default_value = 1.0
+        #node Image
+        image = scene_1.nodes.new("CompositorNodeImage")
+        image.name = "Image"
+        image.frame_duration = 1
+        image.frame_offset = 0
+        image.frame_start = 1
+        image.use_auto_refresh = True
+        image.use_cyclic = False
     
     
         #Set locations
-        composite.location = (1829.191162109375, 84.1082763671875)
-        render_layers.location = (-530.3876953125, 194.8547821044922)
-        _______.location = (1355.857177734375, 58.945648193359375)
-        _________.location = (-193.49203491210938, 12.901390075683594)
-        __.location = (-411.3983459472656, -7.522392272949219)
-        ____.location = (1041.4686279296875, -166.97079467773438)
-        rgb___.location = (579.1456298828125, 3.0018463134765625)
-        ___1.location = (-647.6041870117188, 18.832401275634766)
-        _____.location = (1871.4755859375, 205.16592407226562)
-        ________001.location = (101.74832916259766, -19.633712768554688)
-        hsv__________.location = (859.7230224609375, -196.1482391357422)
+        exposure.location = (-35.726806640625, -21.626792907714844)
+        brightness_contrast.location = (154.273193359375, -21.626792907714844)
+        color_balance.location = (344.273193359375, -21.626792907714844)
+        rgb_curves.location = (546.773193359375, -21.626792907714844)
+        color_balance_001.location = (796.773193359375, -21.626792907714844)
+        hsv__________.location = (986.773193359375, -21.626792907714844)
+        ____.location = (1189.273193359375, -21.626792907714844)
+        composite.location = (1559.273193359375, 28.373207092285156)
+        viewer.location = (1559.273193359375, -71.62679290771484)
+        image.location = (-225.726806640625, -21.626792907714844)
     
         #Set dimensions
-        composite.width, composite.height = 140.0, 100.0
-        render_layers.width, render_layers.height = 240.0, 100.0
-        _______.width, _______.height = 400.0, 100.0
-        _________.width, _________.height = 140.0, 100.0
-        __.width, __.height = 140.0, 100.0
-        ____.width, ____.height = 320.0, 100.0
-        rgb___.width, rgb___.height = 200.0, 100.0
-        ___1.width, ___1.height = 140.0, 100.0
-        _____.width, _____.height = 140.0, 100.0
-        ________001.width, ________001.height = 400.0, 100.0
+        exposure.width, exposure.height = 140.0, 100.0
+        brightness_contrast.width, brightness_contrast.height = 140.0, 100.0
+        color_balance.width, color_balance.height = 140.0, 100.0
+        rgb_curves.width, rgb_curves.height = 200.0, 100.0
+        color_balance_001.width, color_balance_001.height = 140.0, 100.0
         hsv__________.width, hsv__________.height = 140.0, 100.0
+        ____.width, ____.height = 320.0, 100.0
+        composite.width, composite.height = 140.0, 100.0
+        viewer.width, viewer.height = 140.0, 100.0
+        image.width, image.height = 140.0, 100.0
     
         #initialize scene_1 links
-        #__.Image -> _________.Image
-        scene_1.links.new(__.outputs[0], _________.inputs[0])
-        #___1.Image -> __.Image
-        scene_1.links.new(___1.outputs[0], __.inputs[0])
-        #_______.Image -> composite.Image
-        scene_1.links.new(_______.outputs[0], composite.inputs[0])
-        #_______.Image -> _____.Image
-        scene_1.links.new(_______.outputs[0], _____.inputs[0])
-        #________001.Image -> rgb___.Image
-        scene_1.links.new(________001.outputs[0], rgb___.inputs[1])
-        #_________.Image -> ________001.Image
-        scene_1.links.new(_________.outputs[0], ________001.inputs[1])
+        #exposure.Image -> brightness_contrast.Image
+        scene_1.links.new(exposure.outputs[0], brightness_contrast.inputs[0])
+        #brightness_contrast.Image -> color_balance.Image
+        scene_1.links.new(brightness_contrast.outputs[0], color_balance.inputs[1])
+        #color_balance.Image -> rgb_curves.Image
+        scene_1.links.new(color_balance.outputs[0], rgb_curves.inputs[1])
+        #rgb_curves.Image -> color_balance_001.Image
+        scene_1.links.new(rgb_curves.outputs[0], color_balance_001.inputs[1])
+        #color_balance_001.Image -> hsv__________.Image
+        scene_1.links.new(color_balance_001.outputs[0], hsv__________.inputs[0])
         #hsv__________.Image -> ____.Image
         scene_1.links.new(hsv__________.outputs[0], ____.inputs[1])
-        #rgb___.Image -> hsv__________.Image
-        scene_1.links.new(rgb___.outputs[0], hsv__________.inputs[0])
-        #____.Image -> _______.Image
-        scene_1.links.new(____.outputs[0], _______.inputs[1])
+        #image.Image -> exposure.Image
+        scene_1.links.new(image.outputs[0], exposure.inputs[0])
+        #____.Image -> composite.Image
+        scene_1.links.new(____.outputs[0], composite.inputs[0])
+        #____.Image -> viewer.Image
+        scene_1.links.new(____.outputs[0], viewer.inputs[0])
         return scene_1
     
     scene_1 = scene_1_node_group()
-
-
 
 class RETOUCH_OT_add_nodes(Operator):
     bl_idname = "retouch.add_nodes"
@@ -310,4 +316,4 @@ class RETOUCH_OT_add_nodes(Operator):
         return {"FINISHED"}
 classes = (
     RETOUCH_OT_add_nodes,
-           )
+)
