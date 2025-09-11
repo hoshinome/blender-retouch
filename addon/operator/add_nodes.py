@@ -2,8 +2,10 @@ import bpy
 from bpy.types import Operator
 import bpy, mathutils
 def set_nodes():
+    import bpy, mathutils
+
     # Generate unique scene name
-    base_name = "Scene"
+    base_name = "Scene.001"
     end_name = base_name
     if bpy.data.scenes.get(end_name) != None:
         i = 1
@@ -17,28 +19,28 @@ def set_nodes():
     scene.name = end_name
     scene.use_fake_user = True
     bpy.context.window.scene = scene
-    #initialize Scene node group
-    def scene_1_node_group():
-        scene_1 = scene.node_tree
+    #initialize Scene.001 node group
+    def scene_001_node_group():
+        scene_001 = scene.node_tree
         #start with a clean node tree
-        for node in scene_1.nodes:
-            scene_1.nodes.remove(node)
-        scene_1.color_tag = 'NONE'
-        scene_1.description = ""
-        scene_1.default_group_node_width = 140
+        for node in scene_001.nodes:
+            scene_001.nodes.remove(node)
+        scene_001.color_tag = 'NONE'
+        scene_001.description = ""
+        scene_001.default_group_node_width = 140
         
     
-        #scene_1 interface
+        #scene_001 interface
     
-        #initialize scene_1 nodes
+        #initialize scene_001 nodes
         #node Exposure
-        exposure = scene_1.nodes.new("CompositorNodeExposure")
+        exposure = scene_001.nodes.new("CompositorNodeExposure")
         exposure.name = "Exposure"
         #Exposure
         exposure.inputs[1].default_value = 0.0
     
         #node Brightness/Contrast
-        brightness_contrast = scene_1.nodes.new("CompositorNodeBrightContrast")
+        brightness_contrast = scene_001.nodes.new("CompositorNodeBrightContrast")
         brightness_contrast.name = "Brightness/Contrast"
         #Bright
         brightness_contrast.inputs[1].default_value = 0.0
@@ -46,11 +48,11 @@ def set_nodes():
         brightness_contrast.inputs[2].default_value = 0.0
     
         #node Color Balance
-        color_balance = scene_1.nodes.new("CompositorNodeColorBalance")
+        color_balance = scene_001.nodes.new("CompositorNodeColorBalance")
         color_balance.name = "Color Balance"
         color_balance.correction_method = 'LIFT_GAMMA_GAIN'
-        color_balance.input_whitepoint = mathutils.Color((0.9991403222084045, 1.0003736019134521, 0.998818039894104))
-        color_balance.output_whitepoint = mathutils.Color((0.9991403222084045, 1.0003736019134521, 0.998818039894104))
+        color_balance.input_whitepoint = mathutils.Color((0.9991387724876404, 1.0003739595413208, 0.9988194704055786))
+        color_balance.output_whitepoint = mathutils.Color((0.9991387724876404, 1.0003739595413208, 0.9988194704055786))
         #Fac
         color_balance.inputs[0].default_value = 1.0
         #Base Lift
@@ -67,7 +69,7 @@ def set_nodes():
         color_balance.inputs[7].default_value = (1.0, 1.0, 1.0, 1.0)
     
         #node RGB Curves
-        rgb_curves = scene_1.nodes.new("CompositorNodeCurveRGB")
+        rgb_curves = scene_001.nodes.new("CompositorNodeCurveRGB")
         rgb_curves.name = "RGB Curves"
         #mapping settings
         rgb_curves.mapping.extend = 'EXTRAPOLATED'
@@ -121,11 +123,11 @@ def set_nodes():
         rgb_curves.inputs[3].default_value = (1.0, 1.0, 1.0, 1.0)
     
         #node Color Balance.001
-        color_balance_001 = scene_1.nodes.new("CompositorNodeColorBalance")
+        color_balance_001 = scene_001.nodes.new("CompositorNodeColorBalance")
         color_balance_001.name = "Color Balance.001"
         color_balance_001.correction_method = 'LIFT_GAMMA_GAIN'
-        color_balance_001.input_whitepoint = mathutils.Color((0.9991403222084045, 1.0003736019134521, 0.998818039894104))
-        color_balance_001.output_whitepoint = mathutils.Color((0.9991403222084045, 1.0003736019134521, 0.998818039894104))
+        color_balance_001.input_whitepoint = mathutils.Color((0.9991387724876404, 1.0003739595413208, 0.9988194704055786))
+        color_balance_001.output_whitepoint = mathutils.Color((0.9991387724876404, 1.0003739595413208, 0.9988194704055786))
         #Fac
         color_balance_001.inputs[0].default_value = 1.0
         #Base Lift
@@ -141,20 +143,8 @@ def set_nodes():
         #Color Gain
         color_balance_001.inputs[7].default_value = (1.0, 1.0, 1.0, 1.0)
     
-        #node HSV(色相/彩度/明度)
-        hsv__________ = scene_1.nodes.new("CompositorNodeHueSat")
-        hsv__________.name = "HSV(色相/彩度/明度)"
-        #Hue
-        hsv__________.inputs[1].default_value = 0.5
-        #Saturation
-        hsv__________.inputs[2].default_value = 1.0
-        #Value
-        hsv__________.inputs[3].default_value = 1.0
-        #Fac
-        hsv__________.inputs[4].default_value = 1.0
-    
         #node 色相補正
-        ____ = scene_1.nodes.new("CompositorNodeHueCorrect")
+        ____ = scene_001.nodes.new("CompositorNodeHueCorrect")
         ____.name = "色相補正"
         #mapping settings
         ____.mapping.extend = 'EXTRAPOLATED'
@@ -238,16 +228,16 @@ def set_nodes():
         ____.inputs[0].default_value = 1.0
     
         #node Composite
-        composite = scene_1.nodes.new("CompositorNodeComposite")
+        composite = scene_001.nodes.new("CompositorNodeComposite")
         composite.name = "Composite"
     
         #node Viewer
-        viewer = scene_1.nodes.new("CompositorNodeViewer")
+        viewer = scene_001.nodes.new("CompositorNodeViewer")
         viewer.name = "Viewer"
         viewer.ui_shortcut = 0
     
         #node Image
-        image = scene_1.nodes.new("CompositorNodeImage")
+        image = scene_001.nodes.new("CompositorNodeImage")
         image.name = "Image"
         image.frame_duration = 1
         image.frame_offset = 0
@@ -255,18 +245,30 @@ def set_nodes():
         image.use_auto_refresh = True
         image.use_cyclic = False
     
+        #node Hue/Saturation/Value
+        hue_saturation_value = scene_001.nodes.new("CompositorNodeHueSat")
+        hue_saturation_value.name = "Hue/Saturation/Value"
+        #Hue
+        hue_saturation_value.inputs[1].default_value = 0.5
+        #Saturation
+        hue_saturation_value.inputs[2].default_value = 1.0
+        #Value
+        hue_saturation_value.inputs[3].default_value = 1.0
+        #Fac
+        hue_saturation_value.inputs[4].default_value = 1.0
+    
     
         #Set locations
-        exposure.location = (-35.726806640625, -21.626792907714844)
-        brightness_contrast.location = (154.273193359375, -21.626792907714844)
-        color_balance.location = (344.273193359375, -21.626792907714844)
-        rgb_curves.location = (546.773193359375, -21.626792907714844)
-        color_balance_001.location = (796.773193359375, -21.626792907714844)
-        hsv__________.location = (986.773193359375, -21.626792907714844)
-        ____.location = (1189.273193359375, -21.626792907714844)
-        composite.location = (1559.273193359375, 28.373207092285156)
-        viewer.location = (1559.273193359375, -71.62679290771484)
-        image.location = (-225.726806640625, -21.626792907714844)
+        exposure.location = (-723.25, 0.0)
+        brightness_contrast.location = (-533.25, 0.0)
+        color_balance.location = (-343.25, 0.0)
+        rgb_curves.location = (-140.75, 0.0)
+        color_balance_001.location = (109.25, 0.0)
+        ____.location = (501.75, 0.0)
+        composite.location = (871.75, 50.0)
+        viewer.location = (871.75, -50.0)
+        image.location = (-913.25, 0.0)
+        hue_saturation_value.location = (299.25, 0.0)
     
         #Set dimensions
         exposure.width, exposure.height = 140.0, 100.0
@@ -274,34 +276,36 @@ def set_nodes():
         color_balance.width, color_balance.height = 140.0, 100.0
         rgb_curves.width, rgb_curves.height = 200.0, 100.0
         color_balance_001.width, color_balance_001.height = 140.0, 100.0
-        hsv__________.width, hsv__________.height = 140.0, 100.0
         ____.width, ____.height = 320.0, 100.0
         composite.width, composite.height = 140.0, 100.0
         viewer.width, viewer.height = 140.0, 100.0
         image.width, image.height = 140.0, 100.0
+        hue_saturation_value.width, hue_saturation_value.height = 140.0, 100.0
     
-        #initialize scene_1 links
+        #initialize scene_001 links
         #exposure.Image -> brightness_contrast.Image
-        scene_1.links.new(exposure.outputs[0], brightness_contrast.inputs[0])
+        scene_001.links.new(exposure.outputs[0], brightness_contrast.inputs[0])
         #brightness_contrast.Image -> color_balance.Image
-        scene_1.links.new(brightness_contrast.outputs[0], color_balance.inputs[1])
+        scene_001.links.new(brightness_contrast.outputs[0], color_balance.inputs[1])
         #color_balance.Image -> rgb_curves.Image
-        scene_1.links.new(color_balance.outputs[0], rgb_curves.inputs[1])
+        scene_001.links.new(color_balance.outputs[0], rgb_curves.inputs[1])
         #rgb_curves.Image -> color_balance_001.Image
-        scene_1.links.new(rgb_curves.outputs[0], color_balance_001.inputs[1])
-        #color_balance_001.Image -> hsv__________.Image
-        scene_1.links.new(color_balance_001.outputs[0], hsv__________.inputs[0])
-        #hsv__________.Image -> ____.Image
-        scene_1.links.new(hsv__________.outputs[0], ____.inputs[1])
+        scene_001.links.new(rgb_curves.outputs[0], color_balance_001.inputs[1])
         #image.Image -> exposure.Image
-        scene_1.links.new(image.outputs[0], exposure.inputs[0])
+        scene_001.links.new(image.outputs[0], exposure.inputs[0])
         #____.Image -> composite.Image
-        scene_1.links.new(____.outputs[0], composite.inputs[0])
+        scene_001.links.new(____.outputs[0], composite.inputs[0])
         #____.Image -> viewer.Image
-        scene_1.links.new(____.outputs[0], viewer.inputs[0])
-        return scene_1
+        scene_001.links.new(____.outputs[0], viewer.inputs[0])
+        #color_balance_001.Image -> hue_saturation_value.Image
+        scene_001.links.new(color_balance_001.outputs[0], hue_saturation_value.inputs[0])
+        #hue_saturation_value.Image -> ____.Image
+        scene_001.links.new(hue_saturation_value.outputs[0], ____.inputs[1])
+        return scene_001
     
-    scene_1 = scene_1_node_group()
+    scene_001 = scene_001_node_group()
+
+
 
 class RETOUCH_OT_add_nodes(Operator):
     bl_idname = "retouch.add_nodes"
