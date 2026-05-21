@@ -3,12 +3,12 @@ import bpy
 
 NODETREE_NAME = "BlenderRetouch_Nodes"
 
+
 # ---------------------------------------------------------------------------
 # Data helpers
 # ---------------------------------------------------------------------------
 
 def _unique_data_name(base: str, collection) -> str:
-    """Return a name not yet present in *collection*, appending .001, .002, …"""
     if base not in collection:
         return base
     i = 1
@@ -29,13 +29,11 @@ def _group_sort_key(name: str, base: str) -> tuple:
 
 
 def _pick_appended_group(nodetree_name: str, before_names: set):
-    """Return the node group that was just appended (highest-sorted match)."""
     new_names = set(bpy.data.node_groups.keys()) - before_names
     matches = [n for n in new_names
                if n == nodetree_name or n.startswith(nodetree_name + ".")]
     if matches:
         return bpy.data.node_groups[max(matches, key=lambda n: _group_sort_key(n, nodetree_name))]
-    # Fallback: the group existed but was not counted as "new"
     if nodetree_name in bpy.data.node_groups and nodetree_name not in before_names:
         return bpy.data.node_groups[nodetree_name]
     return None
@@ -53,14 +51,10 @@ def _enable_compositor(scene) -> None:
 
 
 def _assign_compositing_group(scene, group_tree) -> bool:
-    """Assign *group_tree* to the scene compositor (handles multiple Blender API versions)."""
-
-    # Blender 5.1+ — direct assignment
     if hasattr(scene, "compositing_node_group"):
         scene.compositing_node_group = group_tree
         return True
 
-    # Blender 4.x compositor API
     if hasattr(scene, "compositor") and hasattr(scene.compositor, "node_tree"):
         _enable_compositor(scene)
         comp_tree = scene.compositor.node_tree
@@ -71,7 +65,6 @@ def _assign_compositing_group(scene, group_tree) -> bool:
             )
             scene.compositor.node_tree = comp_tree
 
-        # Reuse existing group node if present
         group_node = next(
             (n for n in comp_tree.nodes if n.type == "GROUP" and n.node_tree == group_tree),
             None,
@@ -85,7 +78,6 @@ def _assign_compositing_group(scene, group_tree) -> bool:
         _select_node(comp_tree, group_node.name)
         return True
 
-    # Legacy
     if hasattr(scene, "compositor_node_tree"):
         scene.compositor_node_tree = group_tree
         return True
@@ -94,7 +86,6 @@ def _assign_compositing_group(scene, group_tree) -> bool:
 
 
 def _select_node(node_tree, node_name: str):
-    """Deselect all nodes, then select and activate *node_name*."""
     if not node_tree or node_name not in node_tree.nodes:
         return None
     for node in node_tree.nodes:
@@ -106,7 +97,6 @@ def _select_node(node_tree, node_name: str):
 
 
 def _focus_compositor_group(context, group_tree) -> None:
-    """Switch every Node Editor area to the Compositor and open *group_tree*."""
     scene = context.scene
     _enable_compositor(scene)
     _assign_compositing_group(scene, group_tree)
@@ -123,7 +113,6 @@ def _focus_compositor_group(context, group_tree) -> None:
 # ---------------------------------------------------------------------------
 
 def _iter_image_nodes(node_tree):
-    """Yield every Image node inside *node_tree*, recursing into groups."""
     if not node_tree:
         return
     for node in node_tree.nodes:
@@ -156,10 +145,6 @@ def _load_image(operator, image_path: str):
 # ---------------------------------------------------------------------------
 
 def _append_nodetree(operator, blend_file_path: str, nodetree_name: str):
-    """
-    Append *nodetree_name* (and its dependencies) from *blend_file_path*.
-    Returns the resulting node group, or None on failure.
-    """
     before = set(bpy.data.node_groups.keys())
     directory = os.path.join(blend_file_path, "NodeTree")
 
@@ -177,7 +162,6 @@ def _append_nodetree(operator, blend_file_path: str, nodetree_name: str):
     if group:
         return group
 
-    # Last-resort copy
     if nodetree_name in bpy.data.node_groups:
         copy = bpy.data.node_groups[nodetree_name].copy()
         copy.name = _unique_data_name(f"{nodetree_name}_copy", bpy.data.node_groups)
@@ -193,13 +177,6 @@ def _append_nodetree(operator, blend_file_path: str, nodetree_name: str):
 
 def apply_retouch_to_scene(operator, context, image_path: str,
                             blend_file_path: str, nodetree_name: str = NODETREE_NAME):
-    """
-    1. Append the retouch node group from *blend_file_path*.
-    2. Assign it to the scene compositor.
-    3. Set the image on every Image node inside the group.
-
-    Returns the active scene on success, or None on failure.
-    """
     scene = context.scene
     if scene is None:
         operator.report({"ERROR"}, "No active scene found.")
@@ -217,7 +194,6 @@ def apply_retouch_to_scene(operator, context, image_path: str,
     if img is None:
         return None
 
-    # Match render resolution to the image
     if img.size[0] > 0 and img.size[1] > 0:
         scene.render.resolution_x = img.size[0]
         scene.render.resolution_y = img.size[1]
