@@ -6,9 +6,7 @@ from bpy.props import StringProperty
 
 NODETREE_NAME = "BlenderRetouch_Nodes"
 
-
 def _unique_data_name(base, collection):
-    """bpy.data コレクション内で重複しない名前を返す。"""
     if base not in collection:
         return base
     i = 1
@@ -30,7 +28,6 @@ def _group_sort_key(name, base_name):
 
 
 def _pick_appended_group(nodetree_name, before_names):
-    """アペンドで増えたデータのうち、目的のノードグループ名だけを返す。"""
     after_names = set(bpy.data.node_groups.keys())
     new_names = after_names - before_names
     matches = [
@@ -56,7 +53,6 @@ def _enable_compositor(scene):
 
 
 def _assign_compositing_group(scene, group_tree):
-    """シーンのコンポジターに BlenderRetouch_Nodes グループを割り当てる。"""
     if hasattr(scene, "compositing_node_group"):
         scene.compositing_node_group = group_tree
         return True
@@ -103,9 +99,7 @@ def _select_node_in_tree(node_tree, node_name):
     node_tree.nodes.active = target
     return target
 
-
 def _focus_compositor_group(context, group_tree):
-    """BlenderRetouch_Nodes をシーンに適用し、Image ノードを選択状態にする。"""
     scene = context.scene
     _enable_compositor(scene)
     _assign_compositing_group(scene, group_tree)
@@ -121,7 +115,6 @@ def _focus_compositor_group(context, group_tree):
 
 
 def _iter_image_nodes(node_tree):
-    """ノードグループ内の Image ノードを再帰的に列挙する。"""
     if not node_tree:
         return
     for node in node_tree.nodes:
@@ -235,10 +228,8 @@ def apply_retouch_to_scene(
 
 class RETOUCH_OT_add_nodes(Operator, ImportHelper):
     bl_idname = "retouch.add_nodes"
-    bl_label = "画像を選択してリタッチを開始"
-    bl_description = (
-        "画像を選択し、BlenderRetouch_Nodes グループを現在のシーンのコンポジターに適用します"
-    )
+    bl_label = ""
+    bl_description = ("Add nodes")
 
     filter_glob: StringProperty(
         default="*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp;*.exr",
