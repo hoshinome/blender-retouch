@@ -10,8 +10,6 @@ class RetouchPanelMixin:
     bl_category = panel_label
 
 class RetouchAppliedPanelMixin:
-    """リタッチグループ適用時のみ表示するパネル用。"""
-
     @classmethod
     def poll(cls, context):
         return is_retouch_group_applied(context)
@@ -86,6 +84,11 @@ def node_get(context, name, input_index=None):
     return node.inputs[input_index] if isinstance(input_index, int) and input_index < len(node.inputs) else None
 
 
+def draw_prop(layout, data, prop, text=""):
+    if data is not None:
+        layout.prop(data, prop, text=text)
+
+
 def _node_prop_data_path(context, node, prop):
     scene, tree = context.scene, node.id_data
     try:
@@ -98,6 +101,7 @@ def _node_prop_data_path(context, node, prop):
     if getattr(getattr(scene, "compositor", None), "node_tree", None) == tree:
         return f"scene.compositor.node_tree.{rel}"
     return f'bpy.data.node_groups["{tree.name}"].{rel}'
+
 
 class RETOUCH_PT_main(RetouchPanelMixin, Panel):
     bl_idname = "RETOUCH_PT_main"
@@ -124,14 +128,13 @@ class RETOUCH_PT_light(RetouchAppliedPanelMixin, RetouchPanelMixin, Panel):
     def draw(self, context):
         layout = self.layout
 
-        layout.prop(node_get(context, "Exposure", 1), "default_value", text="Exposure")
-        layout.prop(node_get(context, "Brightness/Contrast", 2), "default_value", text="Contrast")
-        layout.prop(node_get(context, "Color Correction", 10), "default_value", text="Highlight")
-        layout.prop(node_get(context, "Color Correction", 20), "default_value", text="Shadow")
-        layout.prop(node_get(context, "Color Correction", 9), "default_value", text="White Level")
-        layout.prop(node_get(context, "Color Correction", 19), "default_value", text="Black Level")
-        # curves_node = _find_node_by_name(get_compositor_tree(context), "RGB Curves")
-        # layout.template_curve_mapping(curves_node, "mapping", type="COLOR")
+        draw_prop(layout, node_get(context, "Exposure", 1), "default_value", text="Exposure")
+        draw_prop(layout, node_get(context, "Brightness/Contrast", 2), "default_value", text="Contrast")
+        draw_prop(layout, node_get(context, "Color Correction", 10), "default_value", text="Highlight")
+        draw_prop(layout, node_get(context, "Color Correction", 20), "default_value", text="Shadow")
+        draw_prop(layout, node_get(context, "Color Correction", 9), "default_value", text="White Level")
+        draw_prop(layout, node_get(context, "Color Correction", 19), "default_value", text="Black Level")
+
 
 class RETOUCH_PT_curves(RetouchAppliedPanelMixin, RetouchPanelMixin, Panel):
     bl_idname = "RETOUCH_PT_curves"
@@ -142,7 +145,10 @@ class RETOUCH_PT_curves(RetouchAppliedPanelMixin, RetouchPanelMixin, Panel):
     def draw(self, context):
         layout = self.layout
         curves_node = _find_node_by_name(get_compositor_tree(context), "RGB Curves")
-        layout.template_curve_mapping(curves_node, "mapping", type="COLOR")
+
+        if curves_node is not None:
+            layout.template_curve_mapping(curves_node, "mapping", type="COLOR", show_tone=True)
+
 
 class RETOUCH_PT_lift_gamma_gain(RetouchAppliedPanelMixin, RetouchPanelMixin, Panel):
     bl_idname = "RETOUCH_PT_lift_gamma_gain"
@@ -153,9 +159,9 @@ class RETOUCH_PT_lift_gamma_gain(RetouchAppliedPanelMixin, RetouchPanelMixin, Pa
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(node_get(context, "Color Balance", 3), "default_value", text="Lift")
-        layout.prop(node_get(context, "Color Balance", 5), "default_value", text="Gamma")
-        layout.prop(node_get(context, "Color Balance", 7), "default_value", text="Gain")
+        draw_prop(layout, node_get(context, "Color Balance", 3), "default_value", text="Lift")
+        draw_prop(layout, node_get(context, "Color Balance", 5), "default_value", text="Gamma")
+        draw_prop(layout, node_get(context, "Color Balance", 7), "default_value", text="Gain")
 
 
 class RETOUCH_PT_color(RetouchAppliedPanelMixin, RetouchPanelMixin, Panel):
@@ -166,23 +172,78 @@ class RETOUCH_PT_color(RetouchAppliedPanelMixin, RetouchPanelMixin, Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(node_get(context, "Color Balance.002", 15), "default_value", text="Temperature")
-        layout.prop(node_get(context, "Color Balance.002", 16), "default_value", text="Tint")
-        # layout_node_eyedropper_icon(
-        #     layout, context, "Color Balance.002", "input_whitepoint", text="White Point"
-        # )
-        row = layout.row(align=True)
-        row.label(text="White Balance")
-        row.operator("ui.eyedropper_color", text="", icon="EYEDROPPER").prop_data_path = (
-            _node_prop_data_path(context, node_get(context, "Color Balance.002"), "input_whitepoint")
-        )
 
+        wb_node = node_get(context, "Color Balance.001")
+
+        if wb_node is not None:
+            row = layout.row(align=True)
+            row.label(text="White Balance")
+            row.operator("ui.eyedropper_color", text="", icon="EYEDROPPER").prop_data_path = (
+                _node_prop_data_path(context, wb_node, "input_whitepoint")
+            )
+
+        draw_prop(layout, node_get(context, "Color Balance.001", 15), "default_value", text="Temperature")
+        draw_prop(layout, node_get(context, "Color Balance.001", 16), "default_value", text="Tint")
+        draw_prop(layout, node_get(context, "BR_Color", 1), "default_value", text="Saturation")
+        draw_prop(layout, node_get(context, "BR_Color", 2), "default_value", text="Natural Saturation")
+
+class RETOUCH_PT_color_mixier(RetouchAppliedPanelMixin, RetouchPanelMixin, Panel):
+    bl_idname = "RETOUCH_PT_color_mixier"
+    bl_label = "Color Mixier"
+    bl_parent_id = RETOUCH_PT_color.bl_idname
+    bl_order = 5
+    
+    def draw(self,context):
+        layout = self.layout
+
+        curves_node = _find_node_by_name(get_compositor_tree(context), "Hue Correct")
+
+        if curves_node is not None:
+            layout.template_curve_mapping(curves_node, "mapping", type="HUE")
+
+
+
+        scn_sets: 'RETOUCH_PG_tabs' = context.scene.retouch
+        self.scn_sets = scn_sets
+        scene = context.scene
+
+        row = layout.row(align=True)
+        row.scale_y = 1
+        row.prop(scene.retouch, "panel_tabs", expand=True)
+        if scn_sets.panel_tabs == "Reds":
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 1), "default_value", text="Hue")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 2), "default_value", text="Saturation")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 3), "default_value", text="Brightness")
+        if scn_sets.panel_tabs == "Yellows":
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 4), "default_value", text="Hue")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 5), "default_value", text="Saturation")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 6), "default_value", text="Brightness")
+        if scn_sets.panel_tabs == "Greens":
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 7), "default_value", text="Hue")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 8), "default_value", text="Saturation")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 9), "default_value", text="Brightness")
+        if scn_sets.panel_tabs == "Cyans":
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 10), "default_value", text="Hue")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 11), "default_value", text="Saturation")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 12), "default_value", text="Brightness")
+        if scn_sets.panel_tabs == "Blues":
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 13), "default_value", text="Hue")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 14), "default_value", text="Saturation")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 15), "default_value", text="Brightness")
+        if scn_sets.panel_tabs == "Purples":
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 16), "default_value", text="Hue")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 17), "default_value", text="Saturation")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 18), "default_value", text="Brightness")
+        if scn_sets.panel_tabs == "Magentas":
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 19), "default_value", text="Hue")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 20), "default_value", text="Saturation")
+            draw_prop(layout, node_get(context, "BR_ColorMixier", 21), "default_value", text="Brightness")
 
 class RETOUCH_PT_color_balance(RetouchAppliedPanelMixin, RetouchPanelMixin, Panel):
     bl_idname = "RETOUCH_PT_color_balance"
     bl_label = "Color Balance"
     bl_parent_id = RETOUCH_PT_color.bl_idname
-    bl_order = 5
+    bl_order = 6
 
     def draw(self, context):
         layout = self.layout
@@ -195,5 +256,6 @@ classes = (
     RETOUCH_PT_curves,
     RETOUCH_PT_lift_gamma_gain,
     RETOUCH_PT_color,
+    RETOUCH_PT_color_mixier,
     RETOUCH_PT_color_balance,
 )

@@ -1,8 +1,13 @@
 import bpy
-from . import ui,operator
+from . import (ui,
+               operator,
+               settings,)
 
-modules=(ui,operator
-         )
+modules = (
+    ui,
+    operator,
+    settings,
+)
 
 def register():
     for mod in modules:
