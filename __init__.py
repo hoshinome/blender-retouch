@@ -13,14 +13,15 @@
 
 bl_info = {
     "name": "Blender Retouch",
-    "author": "kokome_a",
-    "description": "",
-    "blender": (4, 5, 0),
+    "author": "wawawa",
+    "description": "retouch your images with blender",
+    "blender": (5, 1, 0),
     "version": (0, 0, 4),
     "location": "",
     "warning": "",
     "category": "Generic",
 }
+
 panel_label = "BLENDER RETOUCH"
 from . import addon
 

@@ -1,323 +1,290 @@
+import os
 import bpy
 from bpy.types import Operator
-import bpy, mathutils
-def set_nodes():
-    import bpy, mathutils
+from bpy_extras.io_utils import ImportHelper
+from bpy.props import StringProperty
 
-    # Generate unique scene name
-    base_name = "Scene.001"
-    end_name = base_name
-    if bpy.data.scenes.get(end_name) != None:
-        i = 1
-        end_name = base_name + f".{i:03d}"
-        while bpy.data.scenes.get(end_name) != None:
-            end_name = base_name + f".{i:03d}"
-            i += 1
-    
-    scene = bpy.context.window.scene.copy()
-    
-    scene.name = end_name
-    scene.use_fake_user = True
-    bpy.context.window.scene = scene
-    #initialize Scene.001 node group
-    def scene_001_node_group():
-        scene_001 = scene.node_tree
-        #start with a clean node tree
-        for node in scene_001.nodes:
-            scene_001.nodes.remove(node)
-        scene_001.color_tag = 'NONE'
-        scene_001.description = ""
-        scene_001.default_group_node_width = 140
-        
-    
-        #scene_001 interface
-    
-        #initialize scene_001 nodes
-        #node Exposure
-        exposure = scene_001.nodes.new("CompositorNodeExposure")
-        exposure.name = "Exposure"
-        #Exposure
-        exposure.inputs[1].default_value = 0.0
-    
-        #node Brightness/Contrast
-        brightness_contrast = scene_001.nodes.new("CompositorNodeBrightContrast")
-        brightness_contrast.name = "Brightness/Contrast"
-        #Bright
-        brightness_contrast.inputs[1].default_value = 0.0
-        #Contrast
-        brightness_contrast.inputs[2].default_value = 0.0
-    
-        #node Color Balance
-        color_balance = scene_001.nodes.new("CompositorNodeColorBalance")
-        color_balance.name = "Color Balance"
-        color_balance.correction_method = 'LIFT_GAMMA_GAIN'
-        color_balance.input_whitepoint = mathutils.Color((0.9991387724876404, 1.0003739595413208, 0.9988194704055786))
-        color_balance.output_whitepoint = mathutils.Color((0.9991387724876404, 1.0003739595413208, 0.9988194704055786))
-        #Fac
-        color_balance.inputs[0].default_value = 1.0
-        #Base Lift
-        color_balance.inputs[2].default_value = 0.0
-        #Color Lift
-        color_balance.inputs[3].default_value = (1.0, 1.0, 1.0, 1.0)
-        #Base Gamma
-        color_balance.inputs[4].default_value = 1.0
-        #Color Gamma
-        color_balance.inputs[5].default_value = (1.0, 1.0, 1.0, 1.0)
-        #Base Gain
-        color_balance.inputs[6].default_value = 1.0
-        #Color Gain
-        color_balance.inputs[7].default_value = (1.0, 1.0, 1.0, 1.0)
-    
-        #node RGB Curves
-        rgb_curves = scene_001.nodes.new("CompositorNodeCurveRGB")
-        rgb_curves.name = "RGB Curves"
-        #mapping settings
-        rgb_curves.mapping.extend = 'EXTRAPOLATED'
-        rgb_curves.mapping.tone = 'STANDARD'
-        rgb_curves.mapping.black_level = (0.0, 0.0, 0.0)
-        rgb_curves.mapping.white_level = (1.0, 1.0, 1.0)
-        rgb_curves.mapping.clip_min_x = 0.0
-        rgb_curves.mapping.clip_min_y = 0.0
-        rgb_curves.mapping.clip_max_x = 1.0
-        rgb_curves.mapping.clip_max_y = 1.0
-        rgb_curves.mapping.use_clip = True
-        #curve 0
-        rgb_curves_curve_0 = rgb_curves.mapping.curves[0]
-        rgb_curves_curve_0_point_0 = rgb_curves_curve_0.points[0]
-        rgb_curves_curve_0_point_0.location = (0.0, 0.0)
-        rgb_curves_curve_0_point_0.handle_type = 'AUTO'
-        rgb_curves_curve_0_point_1 = rgb_curves_curve_0.points[1]
-        rgb_curves_curve_0_point_1.location = (1.0, 1.0)
-        rgb_curves_curve_0_point_1.handle_type = 'AUTO'
-        #curve 1
-        rgb_curves_curve_1 = rgb_curves.mapping.curves[1]
-        rgb_curves_curve_1_point_0 = rgb_curves_curve_1.points[0]
-        rgb_curves_curve_1_point_0.location = (0.0, 0.0)
-        rgb_curves_curve_1_point_0.handle_type = 'AUTO'
-        rgb_curves_curve_1_point_1 = rgb_curves_curve_1.points[1]
-        rgb_curves_curve_1_point_1.location = (1.0, 1.0)
-        rgb_curves_curve_1_point_1.handle_type = 'AUTO'
-        #curve 2
-        rgb_curves_curve_2 = rgb_curves.mapping.curves[2]
-        rgb_curves_curve_2_point_0 = rgb_curves_curve_2.points[0]
-        rgb_curves_curve_2_point_0.location = (0.0, 0.0)
-        rgb_curves_curve_2_point_0.handle_type = 'AUTO'
-        rgb_curves_curve_2_point_1 = rgb_curves_curve_2.points[1]
-        rgb_curves_curve_2_point_1.location = (1.0, 1.0)
-        rgb_curves_curve_2_point_1.handle_type = 'AUTO'
-        #curve 3
-        rgb_curves_curve_3 = rgb_curves.mapping.curves[3]
-        rgb_curves_curve_3_point_0 = rgb_curves_curve_3.points[0]
-        rgb_curves_curve_3_point_0.location = (0.0, 0.0)
-        rgb_curves_curve_3_point_0.handle_type = 'AUTO'
-        rgb_curves_curve_3_point_1 = rgb_curves_curve_3.points[1]
-        rgb_curves_curve_3_point_1.location = (1.0, 1.0)
-        rgb_curves_curve_3_point_1.handle_type = 'AUTO'
-        #update curve after changes
-        rgb_curves.mapping.update()
-        #Fac
-        rgb_curves.inputs[0].default_value = 1.0
-        #Black Level
-        rgb_curves.inputs[2].default_value = (0.0, 0.0, 0.0, 1.0)
-        #White Level
-        rgb_curves.inputs[3].default_value = (1.0, 1.0, 1.0, 1.0)
-    
-        #node Color Balance.001
-        color_balance_001 = scene_001.nodes.new("CompositorNodeColorBalance")
-        color_balance_001.name = "Color Balance.001"
-        color_balance_001.correction_method = 'LIFT_GAMMA_GAIN'
-        color_balance_001.input_whitepoint = mathutils.Color((0.9991387724876404, 1.0003739595413208, 0.9988194704055786))
-        color_balance_001.output_whitepoint = mathutils.Color((0.9991387724876404, 1.0003739595413208, 0.9988194704055786))
-        #Fac
-        color_balance_001.inputs[0].default_value = 1.0
-        #Base Lift
-        color_balance_001.inputs[2].default_value = 0.0
-        #Color Lift
-        color_balance_001.inputs[3].default_value = (1.0, 1.0, 1.0, 1.0)
-        #Base Gamma
-        color_balance_001.inputs[4].default_value = 1.0
-        #Color Gamma
-        color_balance_001.inputs[5].default_value = (1.0, 1.0, 1.0, 1.0)
-        #Base Gain
-        color_balance_001.inputs[6].default_value = 1.0
-        #Color Gain
-        color_balance_001.inputs[7].default_value = (1.0, 1.0, 1.0, 1.0)
-    
-        #node 色相補正
-        ____ = scene_001.nodes.new("CompositorNodeHueCorrect")
-        ____.name = "色相補正"
-        #mapping settings
-        ____.mapping.extend = 'EXTRAPOLATED'
-        ____.mapping.tone = 'STANDARD'
-        ____.mapping.black_level = (0.0, 0.0, 0.0)
-        ____.mapping.white_level = (1.0, 1.0, 1.0)
-        ____.mapping.clip_min_x = 0.0
-        ____.mapping.clip_min_y = 0.0
-        ____.mapping.clip_max_x = 1.0
-        ____.mapping.clip_max_y = 1.0
-        ____.mapping.use_clip = True
-        #curve 0
-        _____curve_0 = ____.mapping.curves[0]
-        for i in range(len(_____curve_0.points.values()) - 1, 1, -1):
-            _____curve_0.points.remove(_____curve_0.points[i])
-        _____curve_0_point_0 = _____curve_0.points[0]
-        _____curve_0_point_0.location = (0.0, 0.5)
-        _____curve_0_point_0.handle_type = 'AUTO'
-        _____curve_0_point_1 = _____curve_0.points[1]
-        _____curve_0_point_1.location = (0.125, 0.5)
-        _____curve_0_point_1.handle_type = 'AUTO'
-        _____curve_0_point_2 = _____curve_0.points.new(0.25, 0.5)
-        _____curve_0_point_2.handle_type = 'AUTO'
-        _____curve_0_point_3 = _____curve_0.points.new(0.375, 0.5)
-        _____curve_0_point_3.handle_type = 'AUTO'
-        _____curve_0_point_4 = _____curve_0.points.new(0.5, 0.5)
-        _____curve_0_point_4.handle_type = 'AUTO'
-        _____curve_0_point_5 = _____curve_0.points.new(0.625, 0.5)
-        _____curve_0_point_5.handle_type = 'AUTO'
-        _____curve_0_point_6 = _____curve_0.points.new(0.75, 0.5)
-        _____curve_0_point_6.handle_type = 'AUTO'
-        _____curve_0_point_7 = _____curve_0.points.new(0.875, 0.5)
-        _____curve_0_point_7.handle_type = 'AUTO'
-        #curve 1
-        _____curve_1 = ____.mapping.curves[1]
-        for i in range(len(_____curve_1.points.values()) - 1, 1, -1):
-            _____curve_1.points.remove(_____curve_1.points[i])
-        _____curve_1_point_0 = _____curve_1.points[0]
-        _____curve_1_point_0.location = (0.0, 0.5)
-        _____curve_1_point_0.handle_type = 'AUTO'
-        _____curve_1_point_1 = _____curve_1.points[1]
-        _____curve_1_point_1.location = (0.125, 0.5)
-        _____curve_1_point_1.handle_type = 'AUTO'
-        _____curve_1_point_2 = _____curve_1.points.new(0.25, 0.5)
-        _____curve_1_point_2.handle_type = 'AUTO'
-        _____curve_1_point_3 = _____curve_1.points.new(0.375, 0.5)
-        _____curve_1_point_3.handle_type = 'AUTO'
-        _____curve_1_point_4 = _____curve_1.points.new(0.5, 0.5)
-        _____curve_1_point_4.handle_type = 'AUTO'
-        _____curve_1_point_5 = _____curve_1.points.new(0.625, 0.5)
-        _____curve_1_point_5.handle_type = 'AUTO'
-        _____curve_1_point_6 = _____curve_1.points.new(0.75, 0.5)
-        _____curve_1_point_6.handle_type = 'AUTO'
-        _____curve_1_point_7 = _____curve_1.points.new(0.875, 0.5)
-        _____curve_1_point_7.handle_type = 'AUTO'
-        #curve 2
-        _____curve_2 = ____.mapping.curves[2]
-        for i in range(len(_____curve_2.points.values()) - 1, 1, -1):
-            _____curve_2.points.remove(_____curve_2.points[i])
-        _____curve_2_point_0 = _____curve_2.points[0]
-        _____curve_2_point_0.location = (0.0, 0.5)
-        _____curve_2_point_0.handle_type = 'AUTO'
-        _____curve_2_point_1 = _____curve_2.points[1]
-        _____curve_2_point_1.location = (0.125, 0.5)
-        _____curve_2_point_1.handle_type = 'AUTO'
-        _____curve_2_point_2 = _____curve_2.points.new(0.25, 0.5)
-        _____curve_2_point_2.handle_type = 'AUTO'
-        _____curve_2_point_3 = _____curve_2.points.new(0.375, 0.5)
-        _____curve_2_point_3.handle_type = 'AUTO'
-        _____curve_2_point_4 = _____curve_2.points.new(0.5, 0.5)
-        _____curve_2_point_4.handle_type = 'AUTO'
-        _____curve_2_point_5 = _____curve_2.points.new(0.625, 0.5)
-        _____curve_2_point_5.handle_type = 'AUTO'
-        _____curve_2_point_6 = _____curve_2.points.new(0.75, 0.5)
-        _____curve_2_point_6.handle_type = 'AUTO'
-        _____curve_2_point_7 = _____curve_2.points.new(0.875, 0.5)
-        _____curve_2_point_7.handle_type = 'AUTO'
-        #update curve after changes
-        ____.mapping.update()
-        #Fac
-        ____.inputs[0].default_value = 1.0
-    
-        #node Composite
-        composite = scene_001.nodes.new("CompositorNodeComposite")
-        composite.name = "Composite"
-    
-        #node Viewer
-        viewer = scene_001.nodes.new("CompositorNodeViewer")
-        viewer.name = "Viewer"
-        viewer.ui_shortcut = 0
-    
-        #node Image
-        image = scene_001.nodes.new("CompositorNodeImage")
-        image.name = "Image"
-        image.frame_duration = 1
-        image.frame_offset = 0
-        image.frame_start = 1
-        image.use_auto_refresh = True
-        image.use_cyclic = False
-    
-        #node Hue/Saturation/Value
-        hue_saturation_value = scene_001.nodes.new("CompositorNodeHueSat")
-        hue_saturation_value.name = "Hue/Saturation/Value"
-        #Hue
-        hue_saturation_value.inputs[1].default_value = 0.5
-        #Saturation
-        hue_saturation_value.inputs[2].default_value = 1.0
-        #Value
-        hue_saturation_value.inputs[3].default_value = 1.0
-        #Fac
-        hue_saturation_value.inputs[4].default_value = 1.0
-    
-    
-        #Set locations
-        exposure.location = (-723.25, 0.0)
-        brightness_contrast.location = (-533.25, 0.0)
-        color_balance.location = (-343.25, 0.0)
-        rgb_curves.location = (-140.75, 0.0)
-        color_balance_001.location = (109.25, 0.0)
-        ____.location = (501.75, 0.0)
-        composite.location = (871.75, 50.0)
-        viewer.location = (871.75, -50.0)
-        image.location = (-913.25, 0.0)
-        hue_saturation_value.location = (299.25, 0.0)
-    
-        #Set dimensions
-        exposure.width, exposure.height = 140.0, 100.0
-        brightness_contrast.width, brightness_contrast.height = 140.0, 100.0
-        color_balance.width, color_balance.height = 140.0, 100.0
-        rgb_curves.width, rgb_curves.height = 200.0, 100.0
-        color_balance_001.width, color_balance_001.height = 140.0, 100.0
-        ____.width, ____.height = 320.0, 100.0
-        composite.width, composite.height = 140.0, 100.0
-        viewer.width, viewer.height = 140.0, 100.0
-        image.width, image.height = 140.0, 100.0
-        hue_saturation_value.width, hue_saturation_value.height = 140.0, 100.0
-    
-        #initialize scene_001 links
-        #exposure.Image -> brightness_contrast.Image
-        scene_001.links.new(exposure.outputs[0], brightness_contrast.inputs[0])
-        #brightness_contrast.Image -> color_balance.Image
-        scene_001.links.new(brightness_contrast.outputs[0], color_balance.inputs[1])
-        #color_balance.Image -> rgb_curves.Image
-        scene_001.links.new(color_balance.outputs[0], rgb_curves.inputs[1])
-        #rgb_curves.Image -> color_balance_001.Image
-        scene_001.links.new(rgb_curves.outputs[0], color_balance_001.inputs[1])
-        #image.Image -> exposure.Image
-        scene_001.links.new(image.outputs[0], exposure.inputs[0])
-        #____.Image -> composite.Image
-        scene_001.links.new(____.outputs[0], composite.inputs[0])
-        #____.Image -> viewer.Image
-        scene_001.links.new(____.outputs[0], viewer.inputs[0])
-        #color_balance_001.Image -> hue_saturation_value.Image
-        scene_001.links.new(color_balance_001.outputs[0], hue_saturation_value.inputs[0])
-        #hue_saturation_value.Image -> ____.Image
-        scene_001.links.new(hue_saturation_value.outputs[0], ____.inputs[1])
-        return scene_001
-    
-    scene_001 = scene_001_node_group()
+NODETREE_NAME = "BlenderRetouch_Nodes"
 
 
+def _unique_data_name(base, collection):
+    """bpy.data コレクション内で重複しない名前を返す。"""
+    if base not in collection:
+        return base
+    i = 1
+    while f"{base}.{i:03d}" in collection:
+        i += 1
+    return f"{base}.{i:03d}"
 
-class RETOUCH_OT_add_nodes(Operator):
+
+def _group_sort_key(name, base_name):
+    if name == base_name:
+        return (0, 0)
+    if not name.startswith(base_name + "."):
+        return (2, 0)
+    suffix = name[len(base_name) + 1 :]
+    try:
+        return (1, int(suffix))
+    except ValueError:
+        return (1, 9999)
+
+
+def _pick_appended_group(nodetree_name, before_names):
+    """アペンドで増えたデータのうち、目的のノードグループ名だけを返す。"""
+    after_names = set(bpy.data.node_groups.keys())
+    new_names = after_names - before_names
+    matches = [
+        n
+        for n in new_names
+        if n == nodetree_name or n.startswith(nodetree_name + ".")
+    ]
+    if matches:
+        chosen = max(matches, key=lambda n: _group_sort_key(n, nodetree_name))
+        return bpy.data.node_groups[chosen]
+
+    if nodetree_name in bpy.data.node_groups and nodetree_name not in before_names:
+        return bpy.data.node_groups[nodetree_name]
+
+    return None
+
+
+def _enable_compositor(scene):
+    if hasattr(scene, "compositor"):
+        scene.compositor.use_nodes = True
+    if hasattr(scene, "use_nodes"):
+        scene.use_nodes = True
+
+
+def _assign_compositing_group(scene, group_tree):
+    """シーンのコンポジターに BlenderRetouch_Nodes グループを割り当てる。"""
+    if hasattr(scene, "compositing_node_group"):
+        scene.compositing_node_group = group_tree
+        return True
+
+    if hasattr(scene, "compositor") and hasattr(scene.compositor, "node_tree"):
+        _enable_compositor(scene)
+        comp_tree = scene.compositor.node_tree
+        if comp_tree is None:
+            comp_tree = bpy.data.node_groups.new(
+                name=_unique_data_name(f"{scene.name}_Compositor", bpy.data.node_groups),
+                type="CompositorNodeTree",
+            )
+            scene.compositor.node_tree = comp_tree
+
+        group_node = None
+        for node in comp_tree.nodes:
+            if node.type == "GROUP" and node.node_tree == group_tree:
+                group_node = node
+                break
+
+        if group_node is None:
+            group_node = comp_tree.nodes.new("CompositorNodeGroup")
+            group_node.node_tree = group_tree
+            group_node.label = group_tree.name
+            group_node.location = (0, 0)
+
+        _select_node_in_tree(comp_tree, group_node.name)
+        return True
+
+    if hasattr(scene, "compositor_node_tree"):
+        scene.compositor_node_tree = group_tree
+        return True
+
+    return False
+
+
+def _select_node_in_tree(node_tree, node_name):
+    if not node_tree or node_name not in node_tree.nodes:
+        return None
+    for node in node_tree.nodes:
+        node.select = False
+    target = node_tree.nodes[node_name]
+    target.select = True
+    node_tree.nodes.active = target
+    return target
+
+
+def _focus_compositor_group(context, group_tree):
+    """BlenderRetouch_Nodes をシーンに適用し、Image ノードを選択状態にする。"""
+    scene = context.scene
+    _enable_compositor(scene)
+    _assign_compositing_group(scene, group_tree)
+    _select_node_in_tree(group_tree, "Image")
+
+    for window in context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type != "NODE_EDITOR":
+                continue
+            space = area.spaces.active
+            if space.type == "NODE_EDITOR":
+                space.tree_type = "CompositorNodeTree"
+
+
+def _iter_image_nodes(node_tree):
+    """ノードグループ内の Image ノードを再帰的に列挙する。"""
+    if not node_tree:
+        return
+    for node in node_tree.nodes:
+        if node.type == "IMAGE":
+            yield node
+        elif node.type == "GROUP" and node.node_tree:
+            yield from _iter_image_nodes(node.node_tree)
+
+
+def _configure_image_node(image_node):
+    if hasattr(image_node, "image_user") and image_node.image_user:
+        image_node.image_user.frame_duration = 1
+        image_node.image_user.use_auto_refresh = True
+
+
+def _load_image(operator, image_path):
+    abs_path = bpy.path.abspath(image_path)
+    if not os.path.isfile(abs_path):
+        operator.report({"ERROR"}, f"画像ファイルが存在しません: {abs_path}")
+        return None
+    try:
+        return bpy.data.images.load(abs_path, check_existing=True)
+    except Exception as e:
+        operator.report({"ERROR"}, f"画像の読み込みに失敗: {e}")
+        return None
+
+
+def _append_nodetree(operator, blend_file_path, nodetree_name):
+    """
+    blend から BlenderRetouch_Nodes をアペンドする。
+    依存グループ (BR_Color 等) も一緒に入るが、返すのは目的のグループだけ。
+    """
+    before = set(bpy.data.node_groups.keys())
+    directory = os.path.join(blend_file_path, "NodeTree")
+    inner_path = os.path.join(directory, nodetree_name)
+
+    try:
+        bpy.ops.wm.append(
+            filepath=inner_path,
+            directory=directory + os.sep,
+            filename=nodetree_name,
+        )
+    except Exception as e:
+        operator.report(
+            {"ERROR"},
+            f"アペンド失敗: node.blend 内に '{nodetree_name}' が見つかりません。エラー: {e}",
+        )
+        return None
+
+    group = _pick_appended_group(nodetree_name, before)
+    if group:
+        return group
+
+    if nodetree_name in bpy.data.node_groups:
+        src = bpy.data.node_groups[nodetree_name]
+        copy = src.copy()
+        copy.name = _unique_data_name(f"{nodetree_name}_copy", bpy.data.node_groups)
+        return copy
+
+    operator.report(
+        {"ERROR"},
+        f"アペンド後にノードグループ '{nodetree_name}' を取得できませんでした。",
+    )
+    return None
+
+
+def apply_retouch_to_scene(
+    operator, context, image_path, blend_file_path, nodetree_name=NODETREE_NAME
+):
+    """
+    1. BlenderRetouch_Nodes をアペンド
+    2. シーンの compositing_node_group に割り当て（Blender 5.1+）
+    3. グループ内の Image ノードに画像を設定
+    """
+    scene = context.scene
+    if scene is None:
+        operator.report({"ERROR"}, "アクティブなシーンがありません。")
+        return None
+
+    group_tree = _append_nodetree(operator, blend_file_path, nodetree_name)
+    if group_tree is None:
+        return None
+
+    if not _assign_compositing_group(scene, group_tree):
+        operator.report({"ERROR"}, "この Blender バージョンではコンポジターを割り当てできません。")
+        return None
+
+    img = _load_image(operator, image_path)
+    if img is None:
+        return None
+
+    if img.size[0] > 0 and img.size[1] > 0:
+        scene.render.resolution_x = img.size[0]
+        scene.render.resolution_y = img.size[1]
+        scene.render.resolution_percentage = 100
+
+    image_nodes = list(_iter_image_nodes(group_tree))
+    if image_nodes:
+        for image_node in image_nodes:
+            image_node.image = img
+            _configure_image_node(image_node)
+    else:
+        operator.report(
+            {"WARNING"},
+            f"警告: '{group_tree.name}' の中に Image ノードが見つかりませんでした。",
+        )
+
+    _focus_compositor_group(context, group_tree)
+    return scene
+
+
+class RETOUCH_OT_add_nodes(Operator, ImportHelper):
     bl_idname = "retouch.add_nodes"
-    bl_label = ""
-    bl_description = "Add Nodes"
+    bl_label = "画像を選択してリタッチを開始"
+    bl_description = (
+        "画像を選択し、BlenderRetouch_Nodes グループを現在のシーンのコンポジターに適用します"
+    )
+
+    filter_glob: StringProperty(
+        default="*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp;*.exr",
+        options={"HIDDEN"},
+        maxlen=255,
+    )
+
+    filepath: StringProperty(
+        name="File Path",
+        description="選択された画像のパス",
+        maxlen=1024,
+        default="",
+    )
 
     def execute(self, context):
-        if context.scene.use_nodes is False:
-            bpy.context.scene.use_nodes = True
-        bpy.context.scene.render.compositor_device = 'GPU'
-        set_nodes()
+        image_path = self.filepath
+        if not image_path:
+            self.report({"ERROR"}, "画像が選択されていません。")
+            return {"CANCELLED"}
+
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        addon_dir = os.path.dirname(current_dir)
+        blend_file_path = os.path.join(addon_dir, "assets", "node.blend")
+
+        if not os.path.exists(blend_file_path):
+            self.report({"ERROR"}, f"Template blend file not found: {blend_file_path}")
+            return {"CANCELLED"}
+
+        scene = apply_retouch_to_scene(
+            self, context, image_path, blend_file_path, NODETREE_NAME
+        )
+        if scene is None:
+            return {"CANCELLED"}
+
+        try:
+            scene.render.compositor_device = "GPU"
+        except (AttributeError, TypeError):
+            pass
+
+        self.report(
+            {"INFO"},
+            f"シーン '{scene.name}' に '{NODETREE_NAME}' を適用しました",
+        )
         return {"FINISHED"}
+
+
 classes = (
     RETOUCH_OT_add_nodes,
 )
