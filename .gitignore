@@ -3,9 +3,6 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# Blender backup files
-*.blend1
-
 # C extensions
 *.so
 
