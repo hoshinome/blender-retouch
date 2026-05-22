@@ -1,5 +1,5 @@
 import bpy
-from bpy.types import Panel
+from bpy.types import Panel, Context
 from ... import panel_label
 from ..utils.ui import get_node_or_input, get_node_prop_path
 
@@ -9,13 +9,7 @@ class RetouchPanelMixin:
     bl_context = ""
     bl_category = panel_label
 
-    # @classmethod
-    # def poll(cls, context):
-    #     # Forced display for testing
-    #     return True
-
     def draw_prop(self, layout, data, prop, text=""):
-        """Helper to draw a property only if the data source exists."""
         if data is not None:
             layout.prop(data, prop, text=text)
 
@@ -29,7 +23,6 @@ class RETOUCH_PT_main(RetouchPanelMixin, Panel):
         row = self.layout.row()
         row.scale_y = 2.0
         row.operator("retouch.add_nodes", text="Apply Retouch Nodes")
-
 
 class RETOUCH_PT_light(RetouchPanelMixin, Panel):
     bl_idname = "RETOUCH_PT_light"
@@ -69,8 +62,9 @@ class RETOUCH_PT_curves(RetouchPanelMixin, Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        layout = self.layout
         if curves_node := get_node_or_input(context, "RGB Curves"):
-            self.layout.template_curve_mapping(curves_node, "mapping", type="COLOR", show_tone=True)
+            layout.template_curve_mapping(curves_node, "mapping", type="COLOR", show_tone=True)
 
 
 class RETOUCH_PT_color(RetouchPanelMixin, Panel):
@@ -96,9 +90,9 @@ class RETOUCH_PT_color(RetouchPanelMixin, Panel):
         self.draw_prop(layout, get_node_or_input(context, "BR_Color", 2), "default_value", "Natural Saturation")
 
 
-class RETOUCH_PT_color_mixer(RetouchPanelMixin, Panel):
-    bl_idname = "RETOUCH_PT_color_mixer"
-    bl_label = "Color Mixer"
+class RETOUCH_PT_hue_correct(RetouchPanelMixin, Panel):
+    bl_idname = "RETOUCH_PT_hue_correct"
+    bl_label = "Hue Correct"
     bl_parent_id = RETOUCH_PT_color.bl_idname
     bl_order = 5
     bl_options = {'DEFAULT_CLOSED'}
@@ -161,7 +155,7 @@ classes = (
     RETOUCH_PT_curves,
     RETOUCH_PT_lift_gamma_gain,
     RETOUCH_PT_color,
-    RETOUCH_PT_color_mixer,
+    RETOUCH_PT_hue_correct,
     RETOUCH_PT_color_balance,
     RETOUCH_PT_effect,
 )

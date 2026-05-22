@@ -1,5 +1,4 @@
 import bpy
-# from ..resources import icons
 from bpy.props import EnumProperty
 from bpy.types import PropertyGroup
 

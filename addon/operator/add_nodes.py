@@ -44,8 +44,10 @@ class RETOUCH_OT_add_nodes(Operator, ImportHelper):
         except (AttributeError, TypeError):
             pass
 
-        self.report({"INFO"}, f"Applied '{NODETREE_NAME}' to scene '{scene.name}'.")
+        # self.report({"INFO"}, f"Applied '{NODETREE_NAME}' to scene '{scene.name}'.")
         return {"FINISHED"}
 
 
-classes = (RETOUCH_OT_add_nodes,)
+classes = (
+    RETOUCH_OT_add_nodes,
+)
