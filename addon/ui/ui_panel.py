@@ -150,6 +150,7 @@ class RETOUCH_PT_effect(RetouchPanelMixin, Panel):
             self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 4), "default_value", "Black Level")
             self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 5), "default_value", "Detail")
             self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 6), "default_value", "Seed")
+
 classes = (
     RETOUCH_PT_main,
     RETOUCH_PT_light,
