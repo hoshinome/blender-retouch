@@ -143,13 +143,19 @@ class RETOUCH_PT_effect(RetouchPanelMixin, Panel):
             self.draw_prop(col, get_node_or_input(context, "Vignette", 3), "default_value", "Corner Roundness")
             self.draw_prop(col, get_node_or_input(context, "Vignette", 4), "default_value", "Scale")
         elif tabs == "Grain":
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 1), "default_value", "Strength")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 2), "default_value", "Scale")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 3), "default_value", "Roughness")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 1), "default_value")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 2), "default_value", "Strength")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 3), "default_value", "Scale")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 4), "default_value", "Roughness")
             layout.label(text="===Advances===")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 4), "default_value", "Black Level")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 5), "default_value", "Detail")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 6), "default_value", "Seed")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 5), "default_value", "Black Level")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 6), "default_value", "Detail")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 7), "default_value", "Shadows")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 8), "default_value", "Midtones")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 9), "default_value", "Highlights")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 10), "default_value", "Sha/Mid")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 11), "default_value", "Mid/High")
+            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 12), "default_value", "Seed")
 
 classes = (
     RETOUCH_PT_main,

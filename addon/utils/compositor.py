@@ -3,9 +3,6 @@ import bpy
 
 NODETREE_NAME = "BlenderRetouch_Nodes"
 
-# ---------------------------------------------------------------------------
-# Data helpers
-# ---------------------------------------------------------------------------
 
 def _unique_data_name(base: str, collection) -> str:
     if base not in collection:
@@ -37,10 +34,6 @@ def _pick_appended_group(nodetree_name: str, before_names: set):
         return bpy.data.node_groups[nodetree_name]
     return None
 
-
-# ---------------------------------------------------------------------------
-# Compositor setup
-# ---------------------------------------------------------------------------
 
 def _enable_compositor(scene) -> None:
     if hasattr(scene, "compositor"):
@@ -107,10 +100,6 @@ def _focus_compositor_group(context, group_tree) -> None:
                 area.spaces.active.tree_type = "CompositorNodeTree"
 
 
-# ---------------------------------------------------------------------------
-# Image helpers
-# ---------------------------------------------------------------------------
-
 def _iter_image_nodes(node_tree):
     if not node_tree:
         return
@@ -139,10 +128,6 @@ def _load_image(operator, image_path: str):
         return None
 
 
-# ---------------------------------------------------------------------------
-# Append helper
-# ---------------------------------------------------------------------------
-
 def _append_nodetree(operator, blend_file_path: str, nodetree_name: str):
     before = set(bpy.data.node_groups.keys())
     directory = os.path.join(blend_file_path, "NodeTree")
@@ -169,10 +154,6 @@ def _append_nodetree(operator, blend_file_path: str, nodetree_name: str):
     operator.report({"ERROR"}, f"Could not retrieve node group '{nodetree_name}' after append.")
     return None
 
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
 
 def apply_retouch_to_scene(operator, context, image_path: str,
                             blend_file_path: str, nodetree_name: str = NODETREE_NAME):

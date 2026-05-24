@@ -1,8 +1,6 @@
-import bpy
 from .compositor import NODETREE_NAME
 
 def get_compositor_tree(context):
-    """Returns the active compositor node tree from context or scene."""
     space = context.space_data
     if space and space.type == "NODE_EDITOR" and getattr(space, "tree_type", None) == "CompositorNodeTree":
         if getattr(space, "edit_tree", None):
@@ -11,7 +9,6 @@ def get_compositor_tree(context):
     if not (scene := context.scene):
         return None
 
-    # Check common locations for the node tree sequentially
     for attr in ("compositing_node_group", "compositor_node_tree", "node_tree"):
         if tree := getattr(scene, attr, None):
             return tree
@@ -23,7 +20,6 @@ def get_compositor_tree(context):
 
 
 def _find_node_recursive(tree, name):
-    """Recursively searches for a node by name, including inside node groups."""
     if not tree:
         return None
     if node := tree.nodes.get(name):
@@ -36,7 +32,6 @@ def _find_node_recursive(tree, name):
 
 
 def get_node_or_input(context, name, input_index=None):
-    """Finds a node and returns either the node itself or a specific input socket."""
     node = _find_node_recursive(get_compositor_tree(context), name)
     if not node or input_index is None:
         return node
@@ -46,7 +41,6 @@ def get_node_or_input(context, name, input_index=None):
 
 
 def get_node_prop_path(context, node, prop):
-    """Generates the data path for a node property to use with UI operators."""
     scene, tree = context.scene, node.id_data
     try:
         rel = node.path_from_id(prop)
@@ -61,7 +55,6 @@ def get_node_prop_path(context, node, prop):
 
 
 def is_retouch_group_applied(context):
-    """Checks if the retouch node group is currently applied in the compositor."""
     if not (scene := context.scene):
         return False
 
