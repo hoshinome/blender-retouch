@@ -16,7 +16,7 @@ bl_info = {
     "author": "wawawa",
     "description": "retouch your images with blender",
     "blender": (5, 1, 0),
-    "version": (1, 2, 1),
+    "version": (1, 3, 0),
     "location": "",
     "warning": "",
     "category": "Generic",
