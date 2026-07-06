@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+**/blender-retouch_updater/
 *.py[codz]
 *$py.class
 

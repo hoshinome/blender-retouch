@@ -11,7 +11,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from . import addon, addon_updater_ops
 bl_info = {
     "name": "Blender Retouch",
     "author": "wawawa",
@@ -24,7 +23,7 @@ bl_info = {
 }
 
 
-from . import addon_updater_ops
+from . import addon, addon_updater_ops
 
 
 def register():

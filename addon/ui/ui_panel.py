@@ -71,6 +71,7 @@ class RETOUCH_PT_curves(RetouchPanelMixin, Panel):
         layout = self.layout
         if curves_node := get_node_or_input(context, "RGB Curves"):
             layout.template_curve_mapping(curves_node, "mapping", type="COLOR", show_tone=True)
+        self.draw_prop(layout, get_node_or_input(context, "RGB Curves", 1), "default_value", "Factor")
 
 
 class RETOUCH_PT_color(RetouchPanelMixin, Panel):
