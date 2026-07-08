@@ -1,9 +1,9 @@
 import bpy
-from . import ui_panel, ui_preset
+from . import panel, preset
 
 classes = []
-classes += ui_panel.classes
-classes += ui_preset.classes
+classes += panel.classes
+classes += preset.classes
 
 
 def register():

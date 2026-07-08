@@ -18,6 +18,18 @@ class RETOUCH_PG_tabs(PropertyGroup):
         default="",
     )
 
+    retouch_preset_folder: StringProperty(
+        name="Preset Folder",
+        description="Current preset folder path relative to the presets directory",
+        default="presets",
+    )
+
+    retouch_preset_folder_name: StringProperty(
+        name="New Folder Name",
+        description="Name for a new preset folder",
+        default="",
+    )
+
 
 classes = (
     RETOUCH_PG_tabs,

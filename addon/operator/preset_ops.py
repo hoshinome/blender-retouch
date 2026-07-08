@@ -2,6 +2,7 @@ import json
 import os
 import pickle
 import re
+import shutil
 
 import bpy
 from bpy_extras.io_utils import ExportHelper, ImportHelper
@@ -14,10 +15,20 @@ IGNORED_NODE_TYPES = {"IMAGE", "VIEWER", "GROUP_OUTPUT"}
 
 
 def _get_preset_dir() -> str:
+    """アドオン直下の presets フォルダの絶対パスを返す"""
     addon_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     preset_dir = os.path.join(addon_dir, "presets")
-    os.makedirs(preset_dir, exist_ok=True)
+    
+    # 存在しない場合のみ新規作成
+    if not os.path.exists(preset_dir):
+        os.makedirs(preset_dir)
+        
     return preset_dir
+
+
+def _normalize_folder(folder: str) -> str:
+    folder = (folder or "").replace("\\", "/").strip("/")
+    return folder
 
 
 def _get_preset_extension() -> str:
@@ -25,12 +36,34 @@ def _get_preset_extension() -> str:
 
 
 def _get_preset_path(preset_name: str) -> str:
-    return os.path.join(_get_preset_dir(), f"{_sanitize_preset_name(preset_name)}{_get_preset_extension()}")
+    safe_name = _sanitize_preset_name(preset_name)
+    preset_dir = _get_preset_dir()
+
+    if "/" in safe_name:
+        folder_parts = safe_name.split("/")[:-1]
+        file_name = safe_name.split("/")[-1]
+        target_dir = os.path.join(preset_dir, *folder_parts)
+        os.makedirs(target_dir, exist_ok=True)
+        return os.path.join(target_dir, f"{file_name}{_get_preset_extension()}")
+
+    default_path = os.path.join(preset_dir, f"{safe_name}{_get_preset_extension()}")
+    return default_path
 
 
 def _sanitize_preset_name(name: str) -> str:
-    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", name or "preset").strip("._-")
-    return safe_name or "preset"
+    if not name:
+        return "preset"
+
+    parts = []
+    for raw_part in str(name).replace("\\", "/").split("/"):
+        if not raw_part or raw_part in {".", ".."}:
+            continue
+        safe_part = re.sub(r"[^A-Za-z0-9._-]+", "_", raw_part).strip("._-")
+        parts.append(safe_part or "preset")
+
+    if not parts:
+        return "preset"
+    return "/".join(parts)
 
 
 def _serialize_value(value):
@@ -128,13 +161,24 @@ def _restore_curve_mapping(mapping, data: dict) -> None:
         if not points_data:
             continue
 
+        # --- 修正箇所: 既存のポイントを一度クリア（逆順に削除） ---
+        for p_idx in range(len(curve.points) - 1, -1, -1):
+            try:
+                curve.points.remove(curve.points[p_idx])
+            except Exception:
+                # Blenderの仕様で消せない最小限のポイント（通常2点）はスルー
+                pass
+
+        # --- プリセットデータの適用 ---
         for point_index, point_data in enumerate(points_data):
             try:
-                x, y = point_data
+                x, y = float(point_data[0]), float(point_data[1])
+                
+                # 残ってしまった既存ポイントがある場合は位置を上書き、なければ新規追加
                 if point_index < len(curve.points):
-                    curve.points[point_index].location = (float(x), float(y))
+                    curve.points[point_index].location = (x, y)
                 else:
-                    curve.points.new(float(x), float(y))
+                    curve.points.new(x, y)
             except Exception:
                 continue
 
@@ -265,22 +309,43 @@ def _restore_node_state(node: bpy.types.Node, node_data: dict) -> None:
 class RETOUCH_OT_save_preset(Operator):
     bl_idname = "retouch.save_preset"
     bl_label = "Save Preset"
-    bl_description = "Save the current compositor node values as a JSON preset"
+    bl_description = "Save the current compositor node values as a preset"
 
     preset_name: StringProperty(name="Preset Name", default="")
 
+    def invoke(self, context, event):
+        # ポップアップを開くたびに入力欄を空にする（またはデフォルト名を入れる）
+        self.preset_name = ""
+        # 幅250ピクセルのプロパティダイアログ（ポップアップ）を表示
+        return context.window_manager.invoke_props_dialog(self, width=250)
+
+    def draw(self, context):
+        layout = self.layout
+        # ポップアップ内の入力フィールド
+        layout.prop(self, "preset_name", text="Name")
+
     def execute(self, context):
         scene = context.scene
-        preset_name = _sanitize_preset_name(self.preset_name or getattr(getattr(scene, "retouch", None), "retouch_preset_name", ""))
+        retouch_props = getattr(scene, "retouch", None)
+        
+        # ポップアップで入力された名前を使用する
+        preset_name = _sanitize_preset_name(self.preset_name)
         if not preset_name:
             self.report({"ERROR"}, "Preset name is empty.")
             return {"CANCELLED"}
 
+        folder = _normalize_folder(getattr(retouch_props, "retouch_preset_folder", ""))
+        
         tree = ensure_compositor_nodes(scene)
         payload = _capture_preset(tree)
         payload["name"] = preset_name
-        path = _get_preset_path(preset_name)
-        _write_preset_file(path, payload)
+        target_path = _get_preset_path(f"{folder}/{preset_name}" if folder else preset_name)
+        _write_preset_file(target_path, payload)
+        
+        # 保存が終わったらUI側のテキストボックス（あれば）もクリアするか同期
+        if retouch_props and hasattr(retouch_props, "retouch_preset_name"):
+            retouch_props.retouch_preset_name = ""
+            
         self.report({"INFO"}, f"Saved preset: {preset_name}")
         return {"FINISHED"}
 
@@ -321,6 +386,108 @@ class RETOUCH_OT_load_preset(Operator):
             node_lookup[node_name] = node
 
         self.report({"INFO"}, f"Loaded preset: {preset_name}")
+        return {"FINISHED"}
+
+
+class RETOUCH_OT_create_preset_folder(Operator):
+    bl_idname = "retouch.create_preset_folder"
+    bl_label = "Create Folder"
+    bl_description = "Create a new preset folder"
+
+    folder_name: StringProperty(name="Folder Name", default="")
+    create_same_level: BoolProperty(default=False)
+
+    def invoke(self, context, event):
+        self.folder_name = ""
+        return context.window_manager.invoke_props_dialog(self, width=250)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "folder_name", text="Name")
+
+    def execute(self, context):
+        retouch_props = getattr(context.scene, "retouch", None)
+        if retouch_props is None:
+            return {"CANCELLED"}
+
+        folder_name = _sanitize_preset_name(self.folder_name)
+        if not folder_name:
+            self.report({"ERROR"}, "Folder name is empty.")
+            return {"CANCELLED"}
+
+        current_folder = _normalize_folder(getattr(retouch_props, "retouch_preset_folder", ""))
+        base_folder = current_folder
+        if self.create_same_level:
+            base_folder = os.path.dirname(current_folder) if current_folder else ""
+
+        new_folder = f"{base_folder}/{folder_name}" if base_folder else folder_name
+        target_dir = os.path.join(_get_preset_dir(), *new_folder.split("/"))
+
+        os.makedirs(target_dir, exist_ok=True)
+        retouch_props.retouch_preset_folder = new_folder
+        self.report({"INFO"}, f"Created folder: {folder_name}")
+        return {"FINISHED"}
+
+
+class RETOUCH_OT_open_preset_folder(Operator):
+    bl_idname = "retouch.open_preset_folder"
+    bl_label = "Open Folder"
+    bl_description = "Open a preset folder"
+
+    folder_path: StringProperty(default="")
+
+    def execute(self, context):
+        retouch_props = getattr(context.scene, "retouch", None)
+        if retouch_props is None:
+            return {"CANCELLED"}
+        retouch_props.retouch_preset_folder = _normalize_folder(self.folder_path)
+        return {"FINISHED"}
+
+
+class RETOUCH_OT_delete_preset_folder(Operator):
+    bl_idname = "retouch.delete_preset_folder"
+    bl_label = "Delete Folder"
+    bl_description = "Delete a preset folder and everything inside it"
+
+    folder_path: StringProperty(name="Folder Path", default="")
+    confirmed: BoolProperty(default=False)
+
+    def invoke(self, context, event):
+        if self.confirmed:
+            return self.execute(context)
+        return context.window_manager.invoke_props_dialog(self, width=300)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text=f"Delete folder '{self.folder_path}'?", icon="ERROR")
+
+    def execute(self, context):
+        folder_path = _normalize_folder(self.folder_path)
+        if not folder_path:
+            self.report({"ERROR"}, "Cannot delete the presets root folder.")
+            return {"CANCELLED"}
+
+        safe_path = _sanitize_preset_name(folder_path)
+        target_dir = os.path.join(_get_preset_dir(), safe_path)
+
+        if not os.path.isdir(target_dir):
+            self.report({"WARNING"}, f"Folder not found: {folder_path}")
+            return {"CANCELLED"}
+
+        try:
+            shutil.rmtree(target_dir)
+        except Exception as e:
+            self.report({"ERROR"}, f"Failed to delete folder: {e}")
+            return {"CANCELLED"}
+
+        # 削除したフォルダの中にいた場合は、親フォルダ（またはpresetsルート）へ移動する
+        retouch_props = getattr(context.scene, "retouch", None)
+        if retouch_props is not None:
+            current_folder = _normalize_folder(getattr(retouch_props, "retouch_preset_folder", ""))
+            if current_folder == folder_path or current_folder.startswith(f"{folder_path}/"):
+                retouch_props.retouch_preset_folder = os.path.dirname(folder_path)
+
+        self.report({"INFO"}, f"Deleted folder: {folder_path}")
         return {"FINISHED"}
 
 
@@ -368,7 +535,7 @@ class RETOUCH_OT_export_preset(Operator, ExportHelper):
 
     filename_ext = _get_preset_extension()
     filter_glob: StringProperty(default="*.brp", options={"HIDDEN"})
-    preset_name: StringProperty(default="")
+    preset_name: StringProperty(default="", options={"HIDDEN"})
 
     def invoke(self, context, event):
         preset_name = _sanitize_preset_name(self.preset_name)
@@ -376,7 +543,8 @@ class RETOUCH_OT_export_preset(Operator, ExportHelper):
             self.report({"ERROR"}, "Preset name is empty.")
             return {"CANCELLED"}
 
-        self.filepath = f"{preset_name}{_get_preset_extension()}"
+        base_name = os.path.basename(os.path.normpath(preset_name)) or "preset"
+        self.filepath = f"{base_name}{_get_preset_extension()}"
         return super().invoke(context, event)
 
     def execute(self, context):
@@ -437,6 +605,9 @@ class RETOUCH_OT_import_preset(Operator, ImportHelper):
 classes = (
     RETOUCH_OT_save_preset,
     RETOUCH_OT_load_preset,
+    RETOUCH_OT_create_preset_folder,
+    RETOUCH_OT_open_preset_folder,
+    RETOUCH_OT_delete_preset_folder,
     RETOUCH_OT_delete_preset,
     RETOUCH_OT_export_preset,
     RETOUCH_OT_import_preset,
