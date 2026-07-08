@@ -27,7 +27,7 @@ class RETOUCH_PT_main(RetouchPanelMixin, Panel):
         row.operator("retouch.add_nodes", text="Load Image", icon="FILE_IMAGE")
  
         layout.prop(context.scene, "retouch_image_only")
- 
+
 
 
 class RETOUCH_PT_light(RetouchPanelMixin, Panel):
