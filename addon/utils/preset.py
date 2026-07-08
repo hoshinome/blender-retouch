@@ -8,9 +8,10 @@ IGNORED_NODE_TYPES = {"IMAGE", "VIEWER", "GROUP_OUTPUT"}
 
 # --- Path & Folder Management ---
 
+
 def get_preset_dir() -> str:
     addon_name = __name__.split(".")[0]
-    
+
     base_dir = os.path.expanduser("~")
 
     try:
@@ -25,14 +26,15 @@ def get_preset_dir() -> str:
         pass
 
     preset_dir = os.path.join(base_dir, "blender-retouch_data", "presets")
-    
+
     try:
         if not os.path.exists(preset_dir):
             os.makedirs(preset_dir, exist_ok=True)
     except Exception as e:
         print(f"Blender Retouch: Failed to create preset directory. {e}")
-        
+
     return preset_dir
+
 
 def normalize_folder(folder: str | None) -> str:
     folder = (folder or "").replace("\\", "/").strip("/")
@@ -40,8 +42,10 @@ def normalize_folder(folder: str | None) -> str:
         return ""
     return folder
 
+
 def get_preset_extension() -> str:
     return ".brp"
+
 
 def sanitize_preset_name(name: str) -> str:
     if not name:
@@ -56,6 +60,7 @@ def sanitize_preset_name(name: str) -> str:
 
     return "/".join(parts) if parts else "preset"
 
+
 def get_preset_path(preset_name: str) -> str:
     safe_name = sanitize_preset_name(preset_name)
     preset_dir = get_preset_dir()
@@ -69,6 +74,7 @@ def get_preset_path(preset_name: str) -> str:
 
     return os.path.join(preset_dir, f"{safe_name}{get_preset_extension()}")
 
+
 def get_preset_files(preset_dir: str) -> list[str]:
     if not os.path.isdir(preset_dir):
         return []
@@ -77,6 +83,7 @@ def get_preset_files(preset_dir: str) -> list[str]:
         if f.endswith(get_preset_extension()) and os.path.isfile(os.path.join(preset_dir, f))
     ]
     return sorted(preset_files)
+
 
 def get_subfolders(preset_dir: str) -> list[str]:
     if not os.path.isdir(preset_dir):
@@ -88,11 +95,13 @@ def get_subfolders(preset_dir: str) -> list[str]:
 
 # --- File I/O ---
 
+
 def write_preset_file(path: str, payload: dict) -> None:
     json_bytes = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
     compressed_data = zlib.compress(json_bytes, level=6)
     with open(path, "wb") as handle:
         handle.write(compressed_data)
+
 
 def load_preset_file(path: str) -> dict | None:
     if not os.path.exists(path):
@@ -107,6 +116,7 @@ def load_preset_file(path: str) -> dict | None:
 
 # --- Serialization & Deserialization ---
 
+
 def serialize_value(value):
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
@@ -115,15 +125,22 @@ def serialize_value(value):
     if isinstance(value, dict):
         return {k: serialize_value(v) for k, v in value.items()}
     if hasattr(value, "to_list"):
-        try: return [serialize_value(v) for v in value.to_list()]
-        except Exception: pass
+        try:
+            return [serialize_value(v) for v in value.to_list()]
+        except Exception:
+            pass
     if hasattr(value, "to_tuple"):
-        try: return [serialize_value(v) for v in value.to_tuple()]
-        except Exception: pass
+        try:
+            return [serialize_value(v) for v in value.to_tuple()]
+        except Exception:
+            pass
     if hasattr(value, "__len__") and not hasattr(value, "bl_rna"):
-        try: return [serialize_value(v) for v in value]
-        except TypeError: return None
+        try:
+            return [serialize_value(v) for v in value]
+        except TypeError:
+            return None
     return None
+
 
 def serialize_curve_mapping(mapping) -> dict:
     if not mapping:
@@ -142,14 +159,19 @@ def serialize_curve_mapping(mapping) -> dict:
     payload = {"type": "CurveMapping", "curves": curves_data}
     for attr in ("black_level", "white_level"):
         if value := getattr(mapping, attr, None):
-            try: payload[attr] = list(value)
-            except TypeError: payload[attr] = value
+            try:
+                payload[attr] = list(value)
+            except TypeError:
+                payload[attr] = value
 
     for attr in ("clip", "use_clip"):
-        try: payload[attr] = bool(getattr(mapping, attr))
-        except Exception: continue
+        try:
+            payload[attr] = bool(getattr(mapping, attr))
+        except Exception:
+            continue
 
     return payload
+
 
 def serialize_node(node: bpy.types.Node) -> dict:
     data = {
@@ -175,25 +197,26 @@ def serialize_node(node: bpy.types.Node) -> dict:
             value = getattr(node, prop.identifier)
         except Exception:
             continue
-        
+
         if value is None or prop.identifier.startswith("_") or prop.is_readonly:
             continue
-        
+
         if prop.identifier == "mapping" and getattr(getattr(value, "bl_rna", None), "identifier", None) == "CurveMapping":
             data["properties"][prop.identifier] = serialize_curve_mapping(value)
             continue
-            
+
         if hasattr(value, "bl_rna") and not isinstance(value, (str, int, float, bool)):
             continue
-            
+
         if isinstance(value, (str, int, float, bool)):
             data["properties"][prop.identifier] = value
             continue
-            
+
         if (serialized := serialize_value(value)) is not None:
             data["properties"][prop.identifier] = serialized
 
     return data
+
 
 def capture_preset(tree: bpy.types.NodeTree | None) -> dict:
     if tree is None:
@@ -207,14 +230,17 @@ def capture_preset(tree: bpy.types.NodeTree | None) -> dict:
         ],
     }
 
+
 def restore_curve_mapping(mapping, data: dict) -> None:
     if not mapping or not isinstance(data, dict):
         return
 
     for attr in ("black_level", "white_level", "clip", "use_clip"):
         if attr in data:
-            try: setattr(mapping, attr, data[attr])
-            except Exception: continue
+            try:
+                setattr(mapping, attr, data[attr])
+            except Exception:
+                continue
 
     curves_data = data.get("curves", [])
     curves = getattr(mapping, "curves", None)
@@ -229,8 +255,10 @@ def restore_curve_mapping(mapping, data: dict) -> None:
             continue
 
         for p_idx in range(len(curve.points) - 1, -1, -1):
-            try: curve.points.remove(curve.points[p_idx])
-            except Exception: pass
+            try:
+                curve.points.remove(curve.points[p_idx])
+            except Exception:
+                pass
 
         for point_index, point_data in enumerate(points_data):
             try:
@@ -242,13 +270,18 @@ def restore_curve_mapping(mapping, data: dict) -> None:
             except Exception:
                 continue
 
-    try: mapping.update()
-    except Exception: pass
+    try:
+        mapping.update()
+    except Exception:
+        pass
+
 
 def restore_node_state(node: bpy.types.Node, node_data: dict) -> None:
     if "location" in node_data:
-        try: node.location = tuple(node_data["location"])
-        except Exception: pass
+        try:
+            node.location = tuple(node_data["location"])
+        except Exception:
+            pass
 
     input_lookup = {socket.identifier: socket for socket in node.inputs}
     input_lookup.update({socket.name: socket for socket in node.inputs})
@@ -264,8 +297,12 @@ def restore_node_state(node: bpy.types.Node, node_data: dict) -> None:
 
     for prop_name, value in node_data.get("properties", {}).items():
         if prop_name == "mapping" and isinstance(value, dict):
-            try: restore_curve_mapping(getattr(node, prop_name, None), value)
-            except Exception: pass
+            try:
+                restore_curve_mapping(getattr(node, prop_name, None), value)
+            except Exception:
+                pass
             continue
-        try: setattr(node, prop_name, value)
-        except Exception: pass
+        try:
+            setattr(node, prop_name, value)
+        except Exception:
+            pass

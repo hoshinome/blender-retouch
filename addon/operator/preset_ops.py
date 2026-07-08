@@ -18,6 +18,7 @@ from ..utils.preset import (
     restore_node_state,
 )
 
+
 class RETOUCH_OT_save_preset(Operator):
     bl_idname = "retouch.save_preset"
     bl_label = "Save Preset"
@@ -36,7 +37,7 @@ class RETOUCH_OT_save_preset(Operator):
     def execute(self, context):
         scene = context.scene
         retouch_props = getattr(scene, "retouch", None)
-        
+
         preset_name = sanitize_preset_name(self.preset_name)
         if not preset_name:
             self.report({"ERROR"}, "Preset name is empty.")
@@ -44,18 +45,19 @@ class RETOUCH_OT_save_preset(Operator):
 
         folder = normalize_folder(getattr(retouch_props, "retouch_preset_folder", ""))
         tree = ensure_compositor_nodes(scene)
-        
+
         payload = capture_preset(tree)
         payload["name"] = preset_name
-        
+
         target_path = get_preset_path(f"{folder}/{preset_name}" if folder else preset_name)
         write_preset_file(target_path, payload)
-        
+
         if retouch_props and hasattr(retouch_props, "retouch_preset_name"):
             retouch_props.retouch_preset_name = ""
-            
+
         self.report({"INFO"}, f"Saved preset: {preset_name}")
         return {"FINISHED"}
+
 
 class RETOUCH_OT_load_preset(Operator):
     bl_idname = "retouch.load_preset"
@@ -67,7 +69,7 @@ class RETOUCH_OT_load_preset(Operator):
     def execute(self, context):
         scene = context.scene
         preset_name = sanitize_preset_name(self.preset_name or getattr(getattr(scene, "retouch", None), "retouch_preset_name", ""))
-        
+
         if not preset_name:
             self.report({"ERROR"}, "Preset name is empty.")
             return {"CANCELLED"}
@@ -80,7 +82,7 @@ class RETOUCH_OT_load_preset(Operator):
 
         tree = ensure_compositor_nodes(scene)
         node_lookup = {node.name: node for node in tree.nodes}
-        
+
         for node_data in payload.get("nodes", []):
             node_name = node_data.get("name")
             node = node_lookup.get(node_name)
@@ -96,6 +98,7 @@ class RETOUCH_OT_load_preset(Operator):
 
         self.report({"INFO"}, f"Loaded preset: {preset_name}")
         return {"FINISHED"}
+
 
 class RETOUCH_OT_create_preset_folder(Operator):
     bl_idname = "retouch.create_preset_folder"
@@ -134,6 +137,7 @@ class RETOUCH_OT_create_preset_folder(Operator):
         self.report({"INFO"}, f"Created folder: {folder_name}")
         return {"FINISHED"}
 
+
 class RETOUCH_OT_open_preset_folder(Operator):
     bl_idname = "retouch.open_preset_folder"
     bl_label = "Open Folder"
@@ -146,6 +150,7 @@ class RETOUCH_OT_open_preset_folder(Operator):
             retouch_props.retouch_preset_folder = normalize_folder(self.folder_path)
             return {"FINISHED"}
         return {"CANCELLED"}
+
 
 class RETOUCH_OT_delete_preset_folder(Operator):
     bl_idname = "retouch.delete_preset_folder"
@@ -191,6 +196,7 @@ class RETOUCH_OT_delete_preset_folder(Operator):
         self.report({"INFO"}, f"Deleted folder: {folder_path}")
         return {"FINISHED"}
 
+
 class RETOUCH_OT_delete_preset(Operator):
     bl_idname = "retouch.delete_preset"
     bl_label = "Delete Preset"
@@ -222,6 +228,7 @@ class RETOUCH_OT_delete_preset(Operator):
             self.report({"WARNING"}, f"Preset not found: {preset_name}")
         return {"FINISHED"}
 
+
 class RETOUCH_OT_export_preset(Operator, ExportHelper):
     bl_idname = "retouch.export_preset"
     bl_label = "Export Preset"
@@ -244,7 +251,7 @@ class RETOUCH_OT_export_preset(Operator, ExportHelper):
     def execute(self, context):
         preset_name = sanitize_preset_name(self.preset_name)
         source_path = get_preset_path(preset_name)
-        
+
         if not os.path.exists(source_path):
             self.report({"ERROR"}, f"Preset not found: {preset_name}")
             return {"CANCELLED"}
@@ -263,6 +270,7 @@ class RETOUCH_OT_export_preset(Operator, ExportHelper):
         except Exception as e:
             self.report({"ERROR"}, f"Export failed: {e}")
             return {"CANCELLED"}
+
 
 class RETOUCH_OT_import_preset(Operator, ImportHelper):
     bl_idname = "retouch.import_preset"
@@ -295,6 +303,7 @@ class RETOUCH_OT_import_preset(Operator, ImportHelper):
 
         self.report({"INFO"}, f"Imported preset: {preset_name}")
         return {"FINISHED"}
+
 
 classes = (
     RETOUCH_OT_save_preset,

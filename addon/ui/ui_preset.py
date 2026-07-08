@@ -9,11 +9,13 @@ from ..utils.preset import (
     get_preset_files,
 )
 
+
 class RetouchPanelMixin:
     bl_space_type = "NODE_EDITOR"
     bl_region_type = "UI"
     bl_context = ""
     bl_category = "BLENDER RETOUCH"
+
 
 class RETOUCH_PT_preset(RetouchPanelMixin, Panel):
     bl_idname = "RETOUCH_PT_preset"
@@ -133,6 +135,7 @@ class RETOUCH_PT_preset(RetouchPanelMixin, Panel):
     @staticmethod
     def _to_full_preset_name(current_folder: str, base_name: str) -> str:
         return f"{current_folder}/{base_name}" if current_folder else base_name
+
 
 classes = (
     RETOUCH_PT_preset,

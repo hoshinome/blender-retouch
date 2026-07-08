@@ -18,16 +18,15 @@ class RETOUCH_PT_main(RetouchPanelMixin, Panel):
     bl_idname = "RETOUCH_PT_main"
     bl_label = "Blender Retouch"
     bl_order = 0
- 
+
     def draw(self, context):
         layout = self.layout
- 
+
         row = layout.row()
         row.scale_y = 2.0
         row.operator("retouch.add_nodes", text="Load Image", icon="FILE_IMAGE")
- 
-        layout.prop(context.scene, "retouch_image_only")
 
+        layout.prop(context.scene, "retouch_image_only")
 
 
 class RETOUCH_PT_light(RetouchPanelMixin, Panel):
