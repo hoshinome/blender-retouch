@@ -1,8 +1,8 @@
 import json
 import os
 import re
-import zlib
 import bpy
+import zlib
 
 IGNORED_NODE_TYPES = {"IMAGE", "VIEWER", "GROUP_OUTPUT"}
 
@@ -107,12 +107,16 @@ def load_preset_file(path: str) -> dict | None:
     if not os.path.exists(path):
         return None
     with open(path, "rb") as handle:
-        compressed_data = handle.read()
+        raw_data = handle.read()
     try:
-        json_bytes = zlib.decompress(compressed_data)
+        json_bytes = zlib.decompress(raw_data)
+    except zlib.error:
+        json_bytes = raw_data
+    try:
         return json.loads(json_bytes.decode('utf-8'))
     except Exception:
         return None
+
 
 # --- Serialization & Deserialization ---
 
@@ -151,18 +155,24 @@ def serialize_curve_mapping(mapping) -> dict:
         points = []
         for point in getattr(curve, "points", []):
             try:
-                points.append([float(point.location[0]), float(point.location[1])])
+                location = point.location
+                points.append([float(location[0]), float(location[1])])
             except Exception:
                 continue
         curves_data.append({"points": points})
 
     payload = {"type": "CurveMapping", "curves": curves_data}
     for attr in ("black_level", "white_level"):
-        if value := getattr(mapping, attr, None):
-            try:
-                payload[attr] = list(value)
-            except TypeError:
-                payload[attr] = value
+        try:
+            value = getattr(mapping, attr)
+        except Exception:
+            continue
+        if value is None:
+            continue
+        try:
+            payload[attr] = list(value)
+        except TypeError:
+            payload[attr] = value
 
     for attr in ("clip", "use_clip"):
         try:
@@ -184,11 +194,14 @@ def serialize_node(node: bpy.types.Node) -> dict:
     }
 
     for socket in node.inputs:
-        data["inputs"].append({
-            "name": socket.name,
-            "identifier": socket.identifier,
-            "default_value": serialize_value(getattr(socket, "default_value", None)),
-        })
+        default_value = getattr(socket, "default_value", None)
+        data["inputs"].append(
+            {
+                "name": socket.name,
+                "identifier": socket.identifier,
+                "default_value": serialize_value(default_value),
+            }
+        )
 
     for prop in node.bl_rna.properties:
         if prop.identifier in {"name", "label", "location", "inputs", "outputs", "type", "parent", "id_data"}:
@@ -197,22 +210,20 @@ def serialize_node(node: bpy.types.Node) -> dict:
             value = getattr(node, prop.identifier)
         except Exception:
             continue
-
-        if value is None or prop.identifier.startswith("_") or prop.is_readonly:
+        if value is None:
             continue
-
         if prop.identifier == "mapping" and getattr(getattr(value, "bl_rna", None), "identifier", None) == "CurveMapping":
             data["properties"][prop.identifier] = serialize_curve_mapping(value)
             continue
-
+        if prop.identifier.startswith("_") or prop.is_readonly:
+            continue
         if hasattr(value, "bl_rna") and not isinstance(value, (str, int, float, bool)):
             continue
-
         if isinstance(value, (str, int, float, bool)):
             data["properties"][prop.identifier] = value
             continue
-
-        if (serialized := serialize_value(value)) is not None:
+        serialized = serialize_value(value)
+        if serialized is not None:
             data["properties"][prop.identifier] = serialized
 
     return data
@@ -221,6 +232,7 @@ def serialize_node(node: bpy.types.Node) -> dict:
 def capture_preset(tree: bpy.types.NodeTree | None) -> dict:
     if tree is None:
         return {"version": 1, "nodes": []}
+
     return {
         "version": 1,
         "nodes": [
@@ -235,10 +247,18 @@ def restore_curve_mapping(mapping, data: dict) -> None:
     if not mapping or not isinstance(data, dict):
         return
 
-    for attr in ("black_level", "white_level", "clip", "use_clip"):
+    for attr in ("black_level", "white_level"):
+        if attr not in data:
+            continue
+        try:
+            setattr(mapping, attr, data[attr])
+        except Exception:
+            continue
+
+    for attr in ("clip", "use_clip"):
         if attr in data:
             try:
-                setattr(mapping, attr, data[attr])
+                setattr(mapping, attr, bool(data[attr]))
             except Exception:
                 continue
 
@@ -250,7 +270,9 @@ def restore_curve_mapping(mapping, data: dict) -> None:
     count = min(len(curves), len(curves_data))
     for index in range(count):
         curve = curves[index]
-        points_data = curves_data[index].get("points", [])
+        curve_data = curves_data[index]
+        points_data = curve_data.get("points", [])
+
         if not points_data:
             continue
 
@@ -263,6 +285,7 @@ def restore_curve_mapping(mapping, data: dict) -> None:
         for point_index, point_data in enumerate(points_data):
             try:
                 x, y = float(point_data[0]), float(point_data[1])
+
                 if point_index < len(curve.points):
                     curve.points[point_index].location = (x, y)
                 else:
@@ -277,7 +300,7 @@ def restore_curve_mapping(mapping, data: dict) -> None:
 
 
 def restore_node_state(node: bpy.types.Node, node_data: dict) -> None:
-    if "location" in node_data:
+    if node_data.get("location"):
         try:
             node.location = tuple(node_data["location"])
         except Exception:
@@ -288,7 +311,9 @@ def restore_node_state(node: bpy.types.Node, node_data: dict) -> None:
 
     for socket_data in node_data.get("inputs", []):
         socket = input_lookup.get(socket_data.get("identifier")) or input_lookup.get(socket_data.get("name"))
-        if socket and "default_value" in socket_data and socket_data["default_value"] is not None:
+        if socket is None:
+            continue
+        if "default_value" in socket_data and socket_data["default_value"] is not None:
             try:
                 if hasattr(socket, "default_value"):
                     socket.default_value = socket_data["default_value"]
@@ -300,9 +325,20 @@ def restore_node_state(node: bpy.types.Node, node_data: dict) -> None:
             try:
                 restore_curve_mapping(getattr(node, prop_name, None), value)
             except Exception:
-                pass
+                continue
             continue
         try:
             setattr(node, prop_name, value)
         except Exception:
-            pass
+            continue
+
+
+def get_preset_files(preset_dir: str) -> list[str]:
+    if not os.path.isdir(preset_dir):
+        return []
+
+    preset_files = [
+        filename for filename in os.listdir(preset_dir)
+        if filename.endswith(".brp") and os.path.isfile(os.path.join(preset_dir, filename))
+    ]
+    return sorted(preset_files)
