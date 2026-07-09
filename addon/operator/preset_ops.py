@@ -6,17 +6,7 @@ from bpy.props import BoolProperty, StringProperty
 from bpy.types import Operator
 
 from ..utils.compositor import ensure_compositor_nodes
-from ..utils.preset import (
-    get_preset_dir,
-    normalize_folder,
-    get_preset_extension,
-    get_preset_path,
-    sanitize_preset_name,
-    capture_preset,
-    write_preset_file,
-    load_preset_file,
-    restore_node_state,
-)
+from ..utils.preset import *
 
 
 class RETOUCH_OT_save_preset(Operator):
@@ -44,11 +34,10 @@ class RETOUCH_OT_save_preset(Operator):
             return {"CANCELLED"}
 
         folder = normalize_folder(getattr(retouch_props, "retouch_preset_folder", ""))
-        tree = ensure_compositor_nodes(scene)
 
+        tree = ensure_compositor_nodes(scene)
         payload = capture_preset(tree)
         payload["name"] = preset_name
-
         target_path = get_preset_path(f"{folder}/{preset_name}" if folder else preset_name)
         write_preset_file(target_path, payload)
 
@@ -69,20 +58,18 @@ class RETOUCH_OT_load_preset(Operator):
     def execute(self, context):
         scene = context.scene
         preset_name = sanitize_preset_name(self.preset_name or getattr(getattr(scene, "retouch", None), "retouch_preset_name", ""))
-
         if not preset_name:
             self.report({"ERROR"}, "Preset name is empty.")
             return {"CANCELLED"}
 
+        tree = ensure_compositor_nodes(scene)
         path = get_preset_path(preset_name)
         payload = load_preset_file(path)
         if payload is None:
             self.report({"ERROR"}, f"Preset not found: {preset_name}")
             return {"CANCELLED"}
 
-        tree = ensure_compositor_nodes(scene)
         node_lookup = {node.name: node for node in tree.nodes}
-
         for node_data in payload.get("nodes", []):
             node_name = node_data.get("name")
             node = node_lookup.get(node_name)
@@ -127,7 +114,9 @@ class RETOUCH_OT_create_preset_folder(Operator):
             return {"CANCELLED"}
 
         current_folder = normalize_folder(getattr(retouch_props, "retouch_preset_folder", ""))
-        base_folder = os.path.dirname(current_folder) if self.create_same_level and current_folder else current_folder
+        base_folder = current_folder
+        if self.create_same_level:
+            base_folder = os.path.dirname(current_folder) if current_folder else ""
 
         new_folder = f"{base_folder}/{folder_name}" if base_folder else folder_name
         target_dir = os.path.join(get_preset_dir(), *new_folder.split("/"))
@@ -146,10 +135,11 @@ class RETOUCH_OT_open_preset_folder(Operator):
     folder_path: StringProperty(default="")
 
     def execute(self, context):
-        if retouch_props := getattr(context.scene, "retouch", None):
-            retouch_props.retouch_preset_folder = normalize_folder(self.folder_path)
-            return {"FINISHED"}
-        return {"CANCELLED"}
+        retouch_props = getattr(context.scene, "retouch", None)
+        if retouch_props is None:
+            return {"CANCELLED"}
+        retouch_props.retouch_preset_folder = normalize_folder(self.folder_path)
+        return {"FINISHED"}
 
 
 class RETOUCH_OT_delete_preset_folder(Operator):
@@ -188,7 +178,8 @@ class RETOUCH_OT_delete_preset_folder(Operator):
             self.report({"ERROR"}, f"Failed to delete folder: {e}")
             return {"CANCELLED"}
 
-        if retouch_props := getattr(context.scene, "retouch", None):
+        retouch_props = getattr(context.scene, "retouch", None)
+        if retouch_props is not None:
             current_folder = normalize_folder(getattr(retouch_props, "retouch_preset_folder", ""))
             if current_folder == folder_path or current_folder.startswith(f"{folder_path}/"):
                 retouch_props.retouch_preset_folder = os.path.dirname(folder_path)
@@ -212,7 +203,7 @@ class RETOUCH_OT_delete_preset(Operator):
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text=f"Delete preset '{self.preset_name}'?")
+        layout.label(text=f"Delete preset '{self.preset_name}'?", icon="ERROR")
 
     def execute(self, context):
         preset_name = sanitize_preset_name(self.preset_name)
@@ -235,7 +226,7 @@ class RETOUCH_OT_export_preset(Operator, ExportHelper):
     bl_description = "Export a preset .brp file"
 
     filename_ext = get_preset_extension()
-    filter_glob: StringProperty(default=f"*{get_preset_extension()}", options={"HIDDEN"})
+    filter_glob: StringProperty(default="*.brp", options={"HIDDEN"})
     preset_name: StringProperty(default="", options={"HIDDEN"})
 
     def invoke(self, context, event):
@@ -250,8 +241,11 @@ class RETOUCH_OT_export_preset(Operator, ExportHelper):
 
     def execute(self, context):
         preset_name = sanitize_preset_name(self.preset_name)
-        source_path = get_preset_path(preset_name)
+        if not preset_name:
+            self.report({"ERROR"}, "Preset name is empty.")
+            return {"CANCELLED"}
 
+        source_path = get_preset_path(preset_name)
         if not os.path.exists(source_path):
             self.report({"ERROR"}, f"Preset not found: {preset_name}")
             return {"CANCELLED"}
@@ -278,23 +272,18 @@ class RETOUCH_OT_import_preset(Operator, ImportHelper):
     bl_description = "Import a preset .brp file"
 
     filename_ext = get_preset_extension()
-    filter_glob: StringProperty(default=f"*{get_preset_extension()}", options={"HIDDEN"})
+    filter_glob: StringProperty(default="*.brp", options={"HIDDEN"})
     filepath: StringProperty(subtype="FILE_PATH")
 
     def execute(self, context):
-        ext = get_preset_extension()
-        if not self.filepath.lower().endswith(ext):
-            self.report({"ERROR"}, f"Only {ext} files are supported.")
+        if not self.filepath.lower().endswith(get_preset_extension()):
+            self.report({"ERROR"}, f"Only {get_preset_extension()} files are supported.")
             return {"CANCELLED"}
 
         try:
             payload = load_preset_file(self.filepath)
         except Exception as e:
             self.report({"ERROR"}, f"Failed to import preset: {e}")
-            return {"CANCELLED"}
-
-        if payload is None:
-            self.report({"ERROR"}, "Invalid preset file.")
             return {"CANCELLED"}
 
         preset_name = sanitize_preset_name(payload.get("name", os.path.splitext(os.path.basename(self.filepath))[0]))
