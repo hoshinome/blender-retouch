@@ -220,6 +220,123 @@ class RETOUCH_OT_delete_preset(Operator):
         return {"FINISHED"}
 
 
+class RETOUCH_OT_rename_preset(Operator):
+    bl_idname = "retouch.rename_preset"
+    bl_label = "Rename Preset"
+    bl_description = "Rename a saved compositor preset"
+
+    preset_name: StringProperty(name="Preset Name", default="")
+    new_name: StringProperty(name="Rename", default="")
+
+    def invoke(self, context, event):
+        base_name = self.preset_name.rsplit("/", 1)[-1]
+        self.new_name = base_name
+        return context.window_manager.invoke_props_dialog(self, width=250)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "new_name", text="Rename")
+
+    def execute(self, context):
+        preset_name = sanitize_preset_name(self.preset_name)
+        if not preset_name:
+            self.report({"ERROR"}, "Preset name is empty.")
+            return {"CANCELLED"}
+
+        new_base_name = sanitize_preset_name(self.new_name)
+        if not new_base_name or "/" in new_base_name:
+            self.report({"ERROR"}, "Invalid new name.")
+            return {"CANCELLED"}
+
+        source_path = get_preset_path(preset_name)
+        if not os.path.exists(source_path):
+            self.report({"ERROR"}, f"Preset not found: {preset_name}")
+            return {"CANCELLED"}
+
+        folder = preset_name.rsplit("/", 1)[0] if "/" in preset_name else ""
+        new_preset_name = f"{folder}/{new_base_name}" if folder else new_base_name
+        dest_path = get_preset_path(new_preset_name)
+
+        if os.path.exists(dest_path):
+            self.report({"ERROR"}, f"Preset already exists: {new_base_name}")
+            return {"CANCELLED"}
+
+        try:
+            payload = load_preset_file(source_path)
+            if payload is not None and isinstance(payload, dict):
+                payload["name"] = new_base_name
+                write_preset_file(dest_path, payload)
+                os.remove(source_path)
+            else:
+                shutil.move(source_path, dest_path)
+        except Exception as e:
+            self.report({"ERROR"}, f"Rename failed: {e}")
+            return {"CANCELLED"}
+
+        self.report({"INFO"}, f"Renamed preset to: {new_base_name}")
+        return {"FINISHED"}
+
+
+class RETOUCH_OT_rename_preset_folder(Operator):
+    bl_idname = "retouch.rename_preset_folder"
+    bl_label = "Rename Folder"
+    bl_description = "Rename a preset folder"
+
+    folder_path: StringProperty(name="Folder Path", default="")
+    new_name: StringProperty(name="Rename", default="")
+
+    def invoke(self, context, event):
+        base_name = normalize_folder(self.folder_path).rsplit("/", 1)[-1]
+        self.new_name = base_name
+        return context.window_manager.invoke_props_dialog(self, width=250)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "new_name", text="Rename")
+
+    def execute(self, context):
+        folder_path = normalize_folder(self.folder_path)
+        if not folder_path:
+            self.report({"ERROR"}, "Cannot rename the presets root folder.")
+            return {"CANCELLED"}
+
+        new_base_name = sanitize_preset_name(self.new_name)
+        if not new_base_name or "/" in new_base_name:
+            self.report({"ERROR"}, "Invalid new name.")
+            return {"CANCELLED"}
+
+        safe_path = sanitize_preset_name(folder_path)
+        source_dir = os.path.join(get_preset_dir(), safe_path)
+        if not os.path.isdir(source_dir):
+            self.report({"ERROR"}, f"Folder not found: {folder_path}")
+            return {"CANCELLED"}
+
+        parent = folder_path.rsplit("/", 1)[0] if "/" in folder_path else ""
+        new_folder_path = f"{parent}/{new_base_name}" if parent else new_base_name
+        dest_dir = os.path.join(get_preset_dir(), *new_folder_path.split("/"))
+
+        if os.path.exists(dest_dir):
+            self.report({"ERROR"}, f"Folder already exists: {new_base_name}")
+            return {"CANCELLED"}
+
+        try:
+            shutil.move(source_dir, dest_dir)
+        except Exception as e:
+            self.report({"ERROR"}, f"Rename failed: {e}")
+            return {"CANCELLED"}
+
+        retouch_props = getattr(context.scene, "retouch", None)
+        if retouch_props is not None:
+            current_folder = normalize_folder(getattr(retouch_props, "retouch_preset_folder", ""))
+            if current_folder == folder_path:
+                retouch_props.retouch_preset_folder = new_folder_path
+            elif current_folder.startswith(f"{folder_path}/"):
+                retouch_props.retouch_preset_folder = new_folder_path + current_folder[len(folder_path):]
+
+        self.report({"INFO"}, f"Renamed folder to: {new_base_name}")
+        return {"FINISHED"}
+
+
 class RETOUCH_OT_export_preset(Operator, ExportHelper):
     bl_idname = "retouch.export_preset"
     bl_label = "Export Preset"
@@ -286,8 +403,17 @@ class RETOUCH_OT_import_preset(Operator, ImportHelper):
             self.report({"ERROR"}, f"Failed to import preset: {e}")
             return {"CANCELLED"}
 
-        preset_name = sanitize_preset_name(payload.get("name", os.path.splitext(os.path.basename(self.filepath))[0]))
-        dest_path = get_preset_path(preset_name)
+        preset_name = sanitize_preset_name(os.path.splitext(os.path.basename(self.filepath))[0])
+        if not preset_name:
+            self.report({"ERROR"}, "Preset name is empty.")
+            return {"CANCELLED"}
+
+        payload["name"] = preset_name
+
+        retouch_props = getattr(context.scene, "retouch", None)
+        folder = normalize_folder(getattr(retouch_props, "retouch_preset_folder", ""))
+
+        dest_path = get_preset_path(f"{folder}/{preset_name}" if folder else preset_name)
         write_preset_file(dest_path, payload)
 
         self.report({"INFO"}, f"Imported preset: {preset_name}")
@@ -301,6 +427,8 @@ classes = (
     RETOUCH_OT_open_preset_folder,
     RETOUCH_OT_delete_preset_folder,
     RETOUCH_OT_delete_preset,
+    RETOUCH_OT_rename_preset,
+    RETOUCH_OT_rename_preset_folder,
     RETOUCH_OT_export_preset,
     RETOUCH_OT_import_preset,
 )

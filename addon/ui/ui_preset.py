@@ -106,6 +106,8 @@ class RETOUCH_PT_preset(RetouchPanelMixin, Panel):
 
             right = row.row(align=True)
             right.alignment = "RIGHT"
+            rename_op = right.operator("retouch.rename_preset_folder", text="", icon="GREASEPENCIL")
+            rename_op.folder_path = sub_path
             delete_op = right.operator("retouch.delete_preset_folder", text="", icon="TRASH")
             delete_op.folder_path = sub_path
 
@@ -131,6 +133,9 @@ class RETOUCH_PT_preset(RetouchPanelMixin, Panel):
 
             export_op = right.operator("retouch.export_preset", text="", icon="EXPORT")
             export_op.preset_name = preset_name
+
+            rename_op = right.operator("retouch.rename_preset", text="", icon="GREASEPENCIL")
+            rename_op.preset_name = preset_name
 
             delete_op = right.operator("retouch.delete_preset", text="", icon="TRASH")
             delete_op.preset_name = preset_name
