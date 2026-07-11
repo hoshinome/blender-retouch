@@ -7,7 +7,7 @@ from ..utils.preset import *
 
 
 class RetouchPanelMixin:
-    bl_space_type = "NODE_EDITOR"
+    bl_space_type = "IMAGE_EDITOR"
     bl_region_type = "UI"
     bl_context = ""
     bl_category = "BLENDER RETOUCH"
