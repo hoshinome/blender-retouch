@@ -1,10 +1,11 @@
+import bpy
 from . import template
 
 
 def register():
-    template.register()
+    template.install_app_template()
 
 
 def unregister():
-    template.unregister()
-F
+    pass
+#     template.uninstall_app_template()
