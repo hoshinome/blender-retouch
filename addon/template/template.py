@@ -5,6 +5,7 @@ import bpy
 
 TEMPLATE_NAME = "Blender Retouch"
 MARKER_NAME = ".installed_by_blender_retouch"
+MARKER_READ_ERROR = object()
 
 
 def get_template_dir():
@@ -21,22 +22,45 @@ def _file_digest(path):
 
 
 def _read_marker(marker_path):
+    if not os.path.isfile(marker_path):
+        return None
+
     try:
         with open(marker_path, "r") as f:
             lines = f.read().splitlines()
     except OSError:
-        return None
+        return MARKER_READ_ERROR
 
     if not lines:
-        return None
+        return MARKER_READ_ERROR
     installed_digest = lines[0].strip()
     source_digest = lines[1].strip() if len(lines) > 1 else ""
     return installed_digest, source_digest
 
 
-def _write_marker(marker_path, installed_digest, source_digest):
-    with open(marker_path, "w") as f:
-        f.write(f"{installed_digest}\n{source_digest}\n")
+def _install_atomically(src_blend, dst_blend, marker_path, src_digest):
+    dst_existed = os.path.isfile(dst_blend)
+    backup_path = dst_blend + ".bak" if dst_existed else None
+
+    if dst_existed:
+        shutil.copy(dst_blend, backup_path)
+
+    try:
+        shutil.copy(src_blend, dst_blend)
+        digest = _file_digest(dst_blend)
+        tmp_marker = marker_path + ".tmp"
+        with open(tmp_marker, "w") as f:
+            f.write(f"{digest}\n{src_digest}\n")
+        os.replace(tmp_marker, marker_path)
+    except OSError:
+        if dst_existed:
+            shutil.copy(backup_path, dst_blend)
+        elif os.path.isfile(dst_blend):
+            os.remove(dst_blend)
+        raise
+    finally:
+        if backup_path and os.path.isfile(backup_path):
+            os.remove(backup_path)
 
 
 def install_app_template():
@@ -58,11 +82,15 @@ def install_app_template():
     marker_path = os.path.join(template_dir, MARKER_NAME)
 
     if os.path.isfile(dst_blend):
-        marker = _read_marker(marker_path) if os.path.isfile(marker_path) else None
+        marker = _read_marker(marker_path)
 
         if marker is None:
             print(f"[{TEMPLATE_NAME}] Existing user startup.blend found at '{template_dir}', leaving it untouched.")
             return True
+
+        if marker is MARKER_READ_ERROR:
+            print(f"[{TEMPLATE_NAME}] Error reading ownership marker at '{marker_path}', leaving startup.blend untouched.")
+            return False
 
         installed_digest, source_digest_at_install = marker
         try:
@@ -80,8 +108,7 @@ def install_app_template():
             return True
 
         try:
-            shutil.copy(src_blend, dst_blend)
-            _write_marker(marker_path, _file_digest(dst_blend), src_digest)
+            _install_atomically(src_blend, dst_blend, marker_path, src_digest)
             print(f"[{TEMPLATE_NAME}] Success: Template refreshed at '{template_dir}'")
             return True
         except OSError as e:
@@ -90,8 +117,7 @@ def install_app_template():
 
     try:
         os.makedirs(template_dir, exist_ok=True)
-        shutil.copy(src_blend, dst_blend)
-        _write_marker(marker_path, _file_digest(dst_blend), src_digest)
+        _install_atomically(src_blend, dst_blend, marker_path, src_digest)
         print(f"[{TEMPLATE_NAME}] Success: Template installed to '{template_dir}'")
         return True
     except OSError as e:
@@ -108,13 +134,14 @@ def uninstall_app_template():
         print(f"[{TEMPLATE_NAME}] Warning: Template not found, nothing to uninstall.")
         return "missing"
 
-    if not os.path.isfile(marker_path):
+    marker = _read_marker(marker_path)
+
+    if marker is None:
         print(f"[{TEMPLATE_NAME}] Warning: startup.blend was not installed by this add-on, leaving it untouched.")
         return "not_owned"
 
-    marker = _read_marker(marker_path)
-    if marker is None:
-        print(f"[{TEMPLATE_NAME}] Error reading ownership marker.")
+    if marker is MARKER_READ_ERROR:
+        print(f"[{TEMPLATE_NAME}] Error reading ownership marker at '{marker_path}'.")
         return "failed"
 
     installed_digest, _source_digest_at_install = marker
