@@ -1,10 +1,11 @@
 import bpy
-from . import add_nodes, preset_ops
+from . import add_nodes, preset_ops, template
 
 
 classes = []
 classes += add_nodes.classes
 classes += preset_ops.classes
+classes += template.classes
 
 
 def register():

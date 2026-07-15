@@ -42,6 +42,12 @@ class RETOUCH_MT_updater(AddonPreferences):
     def draw(self, context):
         layout = self.layout
 
+        box = layout.box()
+        box.label(text="Template", icon='FILE_BLEND')
+        col = box.column(align=True)
+        col.scale_y = 2
+        col.operator("retouch.uninstall_template", icon='TRASH')
+
         # Works best if a column, or even just self.layout.
         mainrow = layout.row()
         col = mainrow.column()

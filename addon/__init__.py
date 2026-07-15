@@ -2,12 +2,15 @@ import bpy
 from . import (ui,
                operator,
                settings,
+               template,
                preferences)
+
 
 modules = (
     ui,
     operator,
     settings,
+    template,
     preferences
 )
 

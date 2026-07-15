@@ -1,8 +1,8 @@
 import bpy
-from . import preferences_update
+from . import preferences
 
 classes = []
-classes += preferences_update.classes
+classes += preferences.classes
 
 
 def register():
