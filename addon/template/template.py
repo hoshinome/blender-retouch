@@ -3,6 +3,7 @@ import shutil
 import bpy
 
 TEMPLATE_NAME = "Blender Retouch"
+MARKER_NAME = ".installed_by_blender_retouch"
 
 
 def get_template_dir():
@@ -20,14 +21,20 @@ def install_app_template():
 
     template_dir = get_template_dir()
     dst_blend = os.path.join(template_dir, "startup.blend")
+    marker_path = os.path.join(template_dir, MARKER_NAME)
 
     if os.path.isfile(dst_blend):
-        print(f"[{TEMPLATE_NAME}] Template already installed at '{template_dir}', skipping copy.")
+        if os.path.isfile(marker_path):
+            print(f"[{TEMPLATE_NAME}] Template already installed at '{template_dir}', skipping copy.")
+        else:
+            print(f"[{TEMPLATE_NAME}] Existing user startup.blend found at '{template_dir}', leaving it untouched.")
         return True
 
     try:
         os.makedirs(template_dir, exist_ok=True)
         shutil.copy(src_blend, dst_blend)
+        with open(marker_path, "w") as f:
+            f.write("")
         print(f"[{TEMPLATE_NAME}] Success: Template installed to '{template_dir}'")
         return True
     except OSError as e:
@@ -38,13 +45,19 @@ def install_app_template():
 def uninstall_app_template():
     template_dir = get_template_dir()
     dst_blend = os.path.join(template_dir, "startup.blend")
+    marker_path = os.path.join(template_dir, MARKER_NAME)
 
     if not os.path.isfile(dst_blend):
         print(f"[{TEMPLATE_NAME}] Warning: Template not found, nothing to uninstall.")
         return "missing"
 
+    if not os.path.isfile(marker_path):
+        print(f"[{TEMPLATE_NAME}] Warning: startup.blend was not installed by this add-on, leaving it untouched.")
+        return "not_owned"
+
     try:
         os.remove(dst_blend)
+        os.remove(marker_path)
 
         try:
             if not os.listdir(template_dir):

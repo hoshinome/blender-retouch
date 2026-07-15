@@ -15,6 +15,8 @@ class RETOUCH_OT_uninstall_template(Operator):
             self.report({'INFO'}, "Blender Retouch template removed. Restart Blender to update the splash list.")
         elif result == "missing":
             self.report({'WARNING'}, "Template was not installed, nothing to remove.")
+        elif result == "not_owned":
+            self.report({'WARNING'}, "The existing startup.blend was not installed by this add-on and was left untouched.")
         else:
             self.report({'ERROR'}, "Failed to remove template. Check the console for details.")
         return {'FINISHED'}
