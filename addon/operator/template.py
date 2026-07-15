@@ -10,11 +10,13 @@ class RETOUCH_OT_uninstall_template(Operator):
     # bl_options = {'REGISTER'}
 
     def execute(self, context):
-        removed = uninstall_app_template()
-        if removed:
+        result = uninstall_app_template()
+        if result == "removed":
             self.report({'INFO'}, "Blender Retouch template removed. Restart Blender to update the splash list.")
-        else:
+        elif result == "missing":
             self.report({'WARNING'}, "Template was not installed, nothing to remove.")
+        else:
+            self.report({'ERROR'}, "Failed to remove template. Check the console for details.")
         return {'FINISHED'}
 
     def invoke(self, context, event):

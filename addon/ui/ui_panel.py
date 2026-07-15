@@ -4,7 +4,6 @@ from ..utils.ui import *
 
 
 class RetouchPanelMixin:
-    # bl_space_type = "NODE_EDITOR"
     bl_space_type = "IMAGE_EDITOR"
     bl_region_type = "UI"
     bl_context = ""
@@ -30,7 +29,7 @@ class RETOUCH_PT_main(RetouchPanelMixin, Panel):
         layout.prop(context.scene, "retouch_image_only")
 
         image_node = get_node_or_input(context, "Image")
-        if image_node and image_node.image:
+        if image_node and image_node.bl_idname == "CompositorNodeImage" and image_node.image:
             layout.prop(image_node.image.colorspace_settings, "name", text="Color Space")
 
 

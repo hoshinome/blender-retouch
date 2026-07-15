@@ -19,29 +19,41 @@ def install_app_template():
         return False
 
     template_dir = get_template_dir()
+    dst_blend = os.path.join(template_dir, "startup.blend")
+
+    if os.path.isfile(dst_blend):
+        print(f"[{TEMPLATE_NAME}] Template already installed at '{template_dir}', skipping copy.")
+        return True
 
     try:
         os.makedirs(template_dir, exist_ok=True)
-        dst_blend = os.path.join(template_dir, "startup.blend")
         shutil.copy(src_blend, dst_blend)
         print(f"[{TEMPLATE_NAME}] Success: Template installed to '{template_dir}'")
         return True
-    except Exception as e:
+    except OSError as e:
         print(f"[{TEMPLATE_NAME}] Error installing template: {e}")
         return False
 
 
 def uninstall_app_template():
     template_dir = get_template_dir()
+    dst_blend = os.path.join(template_dir, "startup.blend")
 
-    if os.path.isdir(template_dir):
+    if not os.path.isfile(dst_blend):
+        print(f"[{TEMPLATE_NAME}] Warning: Template not found, nothing to uninstall.")
+        return "missing"
+
+    try:
+        os.remove(dst_blend)
+
         try:
-            shutil.rmtree(template_dir, ignore_errors=True)
-            print(f"[{TEMPLATE_NAME}] Success: Template uninstalled.")
-            return True
-        except Exception as e:
-            print(f"[{TEMPLATE_NAME}] Error uninstalling template: {e}")
-            return False
-    else:
-        print(f"[{TEMPLATE_NAME}] Warning: Template directory not found, nothing to uninstall.")
-        return False
+            if not os.listdir(template_dir):
+                os.rmdir(template_dir)
+        except OSError:
+            pass
+
+        print(f"[{TEMPLATE_NAME}] Success: Template uninstalled.")
+        return "removed"
+    except OSError as e:
+        print(f"[{TEMPLATE_NAME}] Error uninstalling template: {e}")
+        return "failed"
