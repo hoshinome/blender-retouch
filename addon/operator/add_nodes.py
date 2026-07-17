@@ -1,8 +1,10 @@
 import os
+
 import bpy
+from bpy.props import StringProperty
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty
+
 from ..utils.compositor import *
 
 
@@ -67,6 +69,4 @@ class RETOUCH_OT_add_nodes(Operator, ImportHelper):
         return {"FINISHED"}
 
 
-classes = (
-    RETOUCH_OT_add_nodes,
-)
+classes = (RETOUCH_OT_add_nodes,)

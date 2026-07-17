@@ -1,9 +1,13 @@
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass
+from typing import Iterable
+
+import blf
 import bpy
 import gpu
-import blf
-import math
 from gpu_extras.batch import batch_for_shader
-
 
 # ------------------------------------------------------------------
 # 定数
@@ -13,20 +17,81 @@ HANDLE_PICK_RADIUS_PX = 10
 HANDLE_DRAW_SIZE_PX = 8
 ROTATE_DIAL_RADIUS_PX = 200
 ROTATE_SNAP_STEP_DEG = 15.0
-ROTATE_DIAL_LINE_WIDTH = 2
-ROTATE_DIAL_LINE_WIDTH_INACTIVE = 1.5
+ROTATE_DIAL_LINE_WIDTH = 1.5
+ROTATE_DIAL_LINE_WIDTH_INACTIVE = 1.0
 
-ASPECT_KEY_LABELS = [
-    ("1", "1:1"), ("2", "4:3"), ("3", "3:2"),
-    ("4", "16:9"), ("5", "9:16"),
+
+ASPECT_KEY_LABELS: list[tuple[str, str]] = [
+    ("1", "1:1"),
+    ("2", "4:3"),
+    ("3", "3:2"),
+    ("4", "16:9"),
+    ("5", "9:16"),
 ]
+
+HandleKey = str  # 'TL' | 'T' | 'TR' | 'L' | 'R' | 'BL' | 'B' | 'BR' | 'MOVE' | 'ROTATE'
+Point = tuple[float, float]
+
+
+# ------------------------------------------------------------------
+# 値オブジェクト
+# ------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ImageSize:
+    width: float
+    height: float
+
+    def __iter__(self):
+        yield self.width
+        yield self.height
+
+    def __getitem__(self, index: int) -> float:
+        return (self.width, self.height)[index]
+
+    @property
+    def center(self) -> Point:
+        return (self.width / 2.0, self.height / 2.0)
+
+
+@dataclass
+class Rect:
+    xmin: float
+    xmax: float
+    ymin: float
+    ymax: float
+
+    @property
+    def width(self) -> float:
+        return self.xmax - self.xmin
+
+    @property
+    def height(self) -> float:
+        return self.ymax - self.ymin
+
+    @property
+    def center(self) -> Point:
+        return ((self.xmin + self.xmax) / 2.0, (self.ymin + self.ymax) / 2.0)
+
+    def as_tuple(self) -> tuple[float, float, float, float]:
+        return (self.xmin, self.xmax, self.ymin, self.ymax)
+
+    def corners(self) -> list[Point]:
+        return [
+            (self.xmin, self.ymax),
+            (self.xmax, self.ymax),
+            (self.xmax, self.ymin),
+            (self.xmin, self.ymin),
+        ]
 
 
 # ------------------------------------------------------------------
 # ノード探索
 # ------------------------------------------------------------------
 
-def get_compositor_node_tree(scene):
+
+def get_compositor_node_tree(scene: bpy.types.Scene):
     node_group = getattr(scene, "compositing_node_group", None)
     if node_group is not None:
         return node_group
@@ -41,7 +106,7 @@ def find_single_image_node(node_tree):
     if node_tree is None:
         raise ImageNodeLookupError("Compositor node tree not found.")
 
-    image_nodes = [node for node in node_tree.nodes if node.type == 'IMAGE']
+    image_nodes = [node for node in node_tree.nodes if node.type == "IMAGE"]
 
     if len(image_nodes) == 0:
         raise ImageNodeLookupError("No Image node found in the compositor.")
@@ -76,7 +141,10 @@ def get_transform_node(node_tree, image_node):
     if link_info is not None:
         _, to_socket, _ = link_info
         downstream_node = to_socket.node
-        if downstream_node.type == 'TRANSFORM' and downstream_node.bl_idname == "CompositorNodeTransform":
+        if (
+            downstream_node.type == "TRANSFORM"
+            and downstream_node.bl_idname == "CompositorNodeTransform"
+        ):
             return downstream_node
 
     raise TransformNodeLookupError(
@@ -85,28 +153,35 @@ def get_transform_node(node_tree, image_node):
     )
 
 
-def reset_transform_node(transform_node):
+def reset_transform_node(transform_node) -> None:
     if transform_node is None:
         return
-    if 'X' in transform_node.inputs:
-        transform_node.inputs['X'].default_value = 0.0
-    if 'Y' in transform_node.inputs:
-        transform_node.inputs['Y'].default_value = 0.0
-    if 'Angle' in transform_node.inputs:
-        transform_node.inputs['Angle'].default_value = 0.0
+    if "X" in transform_node.inputs:
+        transform_node.inputs["X"].default_value = 0.0
+    if "Y" in transform_node.inputs:
+        transform_node.inputs["Y"].default_value = 0.0
+    if "Angle" in transform_node.inputs:
+        transform_node.inputs["Angle"].default_value = 0.0
 
 
 # ------------------------------------------------------------------
 # 座標変換
 # ------------------------------------------------------------------
 
-def image_to_region(region, image_size, x, y):
+
+def image_to_region(region, image_size: ImageSize, x: float, y: float) -> Point:
     u = x / image_size[0]
     v = y / image_size[1]
     return region.view2d.view_to_region(u, v, clip=False)
 
 
-def rotate_point_image_space(px, py, center_x, center_y, angle):
+def rotate_point_image_space(
+    px: float,
+    py: float,
+    center_x: float,
+    center_y: float,
+    angle: float,
+) -> Point:
     dx = px - center_x
     dy = py - center_y
     cos_a = math.cos(angle)
@@ -116,51 +191,62 @@ def rotate_point_image_space(px, py, center_x, center_y, angle):
     return (center_x + rx, center_y + ry)
 
 
-def rotated_image_to_region(region, image_size, x, y, rotation):
-    center_x = image_size[0] / 2.0
-    center_y = image_size[1] / 2.0
+def rotated_image_to_region(
+    region,
+    image_size: ImageSize,
+    x: float,
+    y: float,
+    rotation: float,
+) -> Point:
+    center_x, center_y = image_size.center
     rx, ry = rotate_point_image_space(x, y, center_x, center_y, rotation)
     return image_to_region(region, image_size, rx, ry)
 
 
-def get_handle_positions(region, image_size, xmin, xmax, ymin, ymax, rotation=0.0):
-    center_x = (xmin + xmax) / 2.0
-    center_y = (ymin + ymax) / 2.0
-    coords = {
-        'TL': (xmin, ymax), 'T': (center_x, ymax), 'TR': (xmax, ymax),
-        'L': (xmin, center_y), 'R': (xmax, center_y),
-        'BL': (xmin, ymin), 'B': (center_x, ymin), 'BR': (xmax, ymin),
+def get_handle_positions(
+    region,
+    image_size: ImageSize,
+    rect: Rect,
+) -> dict[HandleKey, Point]:
+    center_x, center_y = rect.center
+    coords: dict[HandleKey, Point] = {
+        "TL": (rect.xmin, rect.ymax),
+        "T": (center_x, rect.ymax),
+        "TR": (rect.xmax, rect.ymax),
+        "L": (rect.xmin, center_y),
+        "R": (rect.xmax, center_y),
+        "BL": (rect.xmin, rect.ymin),
+        "B": (center_x, rect.ymin),
+        "BR": (rect.xmax, rect.ymin),
     }
-    result = {}
-    for key, (x, y) in coords.items():
-        result[key] = image_to_region(region, image_size, x, y)
-    return result
+    return {
+        key: image_to_region(region, image_size, x, y) for key, (x, y) in coords.items()
+    }
 
 
-def get_rotate_handle_position(region, image_size, xmin, xmax, ymin, ymax, rotation=0.0):
-    center_x = (xmin + xmax) / 2.0
-    bottom_center_screen = image_to_region(region, image_size, center_x, ymin)
+def get_rotate_handle_position(region, image_size: ImageSize, rect: Rect) -> Point:
+    center_x, _ = rect.center
+    bottom_center_screen = image_to_region(region, image_size, center_x, rect.ymin)
 
+    # ダイアルの位置
     outward = -ROTATE_DIAL_RADIUS_PX * 0.75
 
     return (bottom_center_screen[0], bottom_center_screen[1] - outward)
 
 
-def get_trim_rect_screen_corners(region, image_size, xmin, xmax, ymin, ymax, rotation=0.0):
-    corners_local = [
-        (xmin, ymax), (xmax, ymax), (xmax, ymin), (xmin, ymin),
-    ]
-    return [
-        image_to_region(region, image_size, px, py)
-        for px, py in corners_local
-    ]
+def get_trim_rect_screen_corners(
+    region, image_size: ImageSize, rect: Rect
+) -> list[Point]:
+    return [image_to_region(region, image_size, px, py) for px, py in rect.corners()]
 
 
-def point_in_polygon(point, polygon):
+def point_in_polygon(point: Point, polygon: Iterable[Point]) -> bool:
     x, y = point
+    polygon = list(polygon)
     n = len(polygon)
     inside = False
     x1, y1 = polygon[0]
+    x_intersect = x1
     for i in range(1, n + 1):
         x2, y2 = polygon[i % n]
         if y > min(y1, y2):
@@ -174,33 +260,55 @@ def point_in_polygon(point, polygon):
     return inside
 
 
-def point_within_rotated_image(px, py, rotation, img_w, img_h):
-    center_x = img_w / 2.0
-    center_y = img_h / 2.0
+def point_within_rotated_image(
+    px: float,
+    py: float,
+    rotation: float,
+    img_w: float,
+    img_h: float,
+) -> bool:
+    center_x, center_y = img_w / 2.0, img_h / 2.0
     rx, ry = rotate_point_image_space(px, py, center_x, center_y, -rotation)
     return -1e-6 <= rx <= img_w + 1e-6 and -1e-6 <= ry <= img_h + 1e-6
 
 
-def clamp_rect_to_image(xmin, xmax, ymin, ymax, img_w, img_h, rotation=0.0):
+def clamp_rect_to_image(
+    rect: Rect,
+    image_size: ImageSize,
+    rotation: float = 0.0,
+) -> Rect:
+    img_w, img_h = image_size
     if img_w <= 0 or img_h <= 0:
-        return xmin, xmax, ymin, ymax
+        return Rect(rect.xmin, rect.xmax, rect.ymin, rect.ymax)
 
     min_size = min(16.0, img_w, img_h)
-    center_x = (xmin + xmax) / 2.0
-    center_y = (ymin + ymax) / 2.0
-    half_w = (xmax - xmin) / 2.0
-    half_h = (ymax - ymin) / 2.0
+    center_x, center_y = rect.center
+    half_w = rect.width / 2.0
+    half_h = rect.height / 2.0
 
     if half_w <= 0 or half_h <= 0:
-        return max(0.0, min(xmin, img_w)), max(0.0, min(xmax, img_w)), max(0.0, min(ymin, img_h)), max(0.0, min(ymax, img_h))
+        return Rect(
+            max(0.0, min(rect.xmin, img_w)),
+            max(0.0, min(rect.xmax, img_w)),
+            max(0.0, min(rect.ymin, img_h)),
+            max(0.0, min(rect.ymax, img_h)),
+        )
 
-    def corners_fit_within_image(scale):
+    def corners_fit_within_image(scale: float) -> bool:
         nx_min = center_x - half_w * scale
         nx_max = center_x + half_w * scale
         ny_min = center_y - half_h * scale
         ny_max = center_y + half_h * scale
-        corners = [(nx_min, ny_min), (nx_max, ny_min), (nx_max, ny_max), (nx_min, ny_max)]
-        return all(point_within_rotated_image(cx, cy, rotation, img_w, img_h) for cx, cy in corners)
+        corners = [
+            (nx_min, ny_min),
+            (nx_max, ny_min),
+            (nx_max, ny_max),
+            (nx_min, ny_max),
+        ]
+        return all(
+            point_within_rotated_image(cx, cy, rotation, img_w, img_h)
+            for cx, cy in corners
+        )
 
     if corners_fit_within_image(1.0):
         scale = 1.0
@@ -214,29 +322,63 @@ def clamp_rect_to_image(xmin, xmax, ymin, ymax, img_w, img_h, rotation=0.0):
                 hi = mid
         scale = lo
 
-    # 最低サイズを下回らないように保護
     min_scale_w = min_size / (half_w * 2) if half_w > 0 else 1.0
     min_scale_h = min_size / (half_h * 2) if half_h > 0 else 1.0
-    scale = max(scale, min_scale_w, min_scale_h)
+    min_scale = max(min_scale_w, min_scale_h)
+
+    if min_scale > scale and not corners_fit_within_image(min_scale):
+        # 幅と高さを独立してクランプせず、アスペクト比を維持して計算する
+        target_w = max(rect.width, 1e-6)
+        target_h = max(rect.height, 1e-6)
+        ratio = target_w / target_h
+
+        if target_w < min_size or target_h < min_size:
+            if target_w < target_h:
+                target_w = min_size
+                target_h = target_w / ratio
+            else:
+                target_h = min_size
+                target_w = target_h * ratio
+
+        if target_w > img_w or target_h > img_h:
+            s = min(img_w / target_w, img_h / target_h)
+            target_w *= s
+            target_h *= s
+
+        candidate = Rect(
+            center_x - target_w / 2.0,
+            center_x + target_w / 2.0,
+            center_y - target_h / 2.0,
+            center_y + target_h / 2.0,
+        )
+        return clamp_move_to_image(candidate, image_size, rotation)
+
+    scale = max(scale, min_scale)
 
     new_half_w = half_w * scale
     new_half_h = half_h * scale
-    return (
-        center_x - new_half_w, center_x + new_half_w,
-        center_y - new_half_h, center_y + new_half_h,
+    return Rect(
+        center_x - new_half_w,
+        center_x + new_half_w,
+        center_y - new_half_h,
+        center_y + new_half_h,
     )
 
 
-def clamp_move_to_image(xmin, xmax, ymin, ymax, img_w, img_h, rotation=0.0):
+def clamp_move_to_image(
+    rect: Rect,
+    image_size: ImageSize,
+    rotation: float = 0.0,
+) -> Rect:
+    img_w, img_h = image_size
     if img_w <= 0 or img_h <= 0:
-        return xmin, xmax, ymin, ymax
+        return Rect(rect.xmin, rect.xmax, rect.ymin, rect.ymax)
 
-    width = xmax - xmin
-    height = ymax - ymin
+    width, height = rect.width, rect.height
 
     if rotation == 0.0:
-        new_xmin, new_xmax = xmin, xmax
-        new_ymin, new_ymax = ymin, ymax
+        new_xmin, new_xmax = rect.xmin, rect.xmax
+        new_ymin, new_ymax = rect.ymin, rect.ymax
         if new_xmin < 0:
             new_xmin, new_xmax = 0.0, width
         if new_xmax > img_w:
@@ -245,30 +387,39 @@ def clamp_move_to_image(xmin, xmax, ymin, ymax, img_w, img_h, rotation=0.0):
             new_ymin, new_ymax = 0.0, height
         if new_ymax > img_h:
             new_ymax, new_ymin = img_h, img_h - height
-        return new_xmin, new_xmax, new_ymin, new_ymax
+        return Rect(new_xmin, new_xmax, new_ymin, new_ymax)
 
-    center_x = (xmin + xmax) / 2.0
-    center_y = (ymin + ymax) / 2.0
-    half_w = width / 2.0
-    half_h = height / 2.0
-    img_center_x = img_w / 2.0
-    img_center_y = img_h / 2.0
+    center_x, center_y = rect.center
+    half_w, half_h = width / 2.0, height / 2.0
+    img_center_x, img_center_y = img_w / 2.0, img_h / 2.0
 
-    def fits_at_center(cx, cy):
+    def fits_at_center(cx: float, cy: float) -> bool:
         corners = [
-            (cx - half_w, cy - half_h), (cx + half_w, cy - half_h),
-            (cx + half_w, cy + half_h), (cx - half_w, cy + half_h),
+            (cx - half_w, cy - half_h),
+            (cx + half_w, cy - half_h),
+            (cx + half_w, cy + half_h),
+            (cx - half_w, cy + half_h),
         ]
-        return all(point_within_rotated_image(px, py, rotation, img_w, img_h) for px, py in corners)
+        return all(
+            point_within_rotated_image(px, py, rotation, img_w, img_h)
+            for px, py in corners
+        )
 
     if fits_at_center(center_x, center_y):
-        return center_x - half_w, center_x + half_w, center_y - half_h, center_y + half_h
+        return Rect(
+            center_x - half_w, center_x + half_w, center_y - half_h, center_y + half_h
+        )
 
     if not fits_at_center(img_center_x, img_center_y):
         return clamp_rect_to_image(
-            img_center_x - half_w, img_center_x + half_w,
-            img_center_y - half_h, img_center_y + half_h,
-            img_w, img_h, rotation,
+            Rect(
+                img_center_x - half_w,
+                img_center_x + half_w,
+                img_center_y - half_h,
+                img_center_y + half_h,
+            ),
+            image_size,
+            rotation,
         )
 
     lo, hi = 0.0, 1.0
@@ -284,30 +435,54 @@ def clamp_move_to_image(xmin, xmax, ymin, ymax, img_w, img_h, rotation=0.0):
     new_center_x = img_center_x + (center_x - img_center_x) * lo
     new_center_y = img_center_y + (center_y - img_center_y) * lo
 
-    return (
-        new_center_x - half_w, new_center_x + half_w,
-        new_center_y - half_h, new_center_y + half_h,
+    return Rect(
+        new_center_x - half_w,
+        new_center_x + half_w,
+        new_center_y - half_h,
+        new_center_y + half_h,
     )
 
 
-def clamp_resize_to_image(xmin, xmax, ymin, ymax, anchor_x, anchor_y, img_w, img_h, rotation=0.0, min_size=16.0):
+def clamp_resize_to_image(
+    rect: Rect,
+    anchor: Point,
+    image_size: ImageSize,
+    rotation: float = 0.0,
+    min_size: float = 16.0,
+) -> Rect:
+    img_w, img_h = image_size
     if img_w <= 0 or img_h <= 0:
-        return xmin, xmax, ymin, ymax
+        return Rect(rect.xmin, rect.xmax, rect.ymin, rect.ymax)
 
-    width = xmax - xmin
-    height = ymax - ymin
+    width, height = rect.width, rect.height
 
     if width <= 0 or height <= 0:
-        return max(0.0, min(xmin, img_w)), max(0.0, min(xmax, img_w)), max(0.0, min(ymin, img_h)), max(0.0, min(ymax, img_h))
+        return Rect(
+            max(0.0, min(rect.xmin, img_w)),
+            max(0.0, min(rect.xmax, img_w)),
+            max(0.0, min(rect.ymin, img_h)),
+            max(0.0, min(rect.ymax, img_h)),
+        )
 
-    corners = [(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)]
+    anchor_x, anchor_y = anchor
+    corners = [
+        (rect.xmin, rect.ymin),
+        (rect.xmax, rect.ymin),
+        (rect.xmax, rect.ymax),
+        (rect.xmin, rect.ymax),
+    ]
 
-    def scaled_corners(scale):
-        return [(anchor_x + (cx - anchor_x) * scale, anchor_y + (cy - anchor_y) * scale) for cx, cy in corners]
+    def scaled_corners(scale: float) -> list[Point]:
+        return [
+            (anchor_x + (cx - anchor_x) * scale, anchor_y + (cy - anchor_y) * scale)
+            for cx, cy in corners
+        ]
 
-    def corners_fit_within_image(scale):
+    def corners_fit_within_image(scale: float) -> bool:
         pts = scaled_corners(scale)
-        return all(point_within_rotated_image(nx, ny, rotation, img_w, img_h) for nx, ny in pts)
+        return all(
+            point_within_rotated_image(nx, ny, rotation, img_w, img_h) for nx, ny in pts
+        )
 
     if corners_fit_within_image(1.0):
         scale = 1.0
@@ -321,22 +496,62 @@ def clamp_resize_to_image(xmin, xmax, ymin, ymax, anchor_x, anchor_y, img_w, img
                 hi = mid
         scale = lo
 
-    # 相似縮小時も最低サイズを死守する
     min_scale_w = min_size / width if width > 0 else 1.0
     min_scale_h = min_size / height if height > 0 else 1.0
-    scale = max(scale, min_scale_w, min_scale_h)
+    min_scale = max(min_scale_w, min_scale_h)
 
+    if min_scale > scale and not corners_fit_within_image(min_scale):
+        # 潰れてしまった cur_w を使わず、要求された rect のサイズベースでアスペクト比を維持
+        target_w = max(rect.width, 1e-6)
+        target_h = max(rect.height, 1e-6)
+        ratio = target_w / target_h
+
+        if target_w < min_size or target_h < min_size:
+            if target_w < target_h:
+                target_w = min_size
+                target_h = target_w / ratio
+            else:
+                target_h = min_size
+                target_w = target_h * ratio
+
+        if target_w > img_w or target_h > img_h:
+            s = min(img_w / target_w, img_h / target_h)
+            target_w *= s
+            target_h *= s
+
+        center_x, center_y = rect.center
+        candidate = Rect(
+            center_x - target_w / 2.0,
+            center_x + target_w / 2.0,
+            center_y - target_h / 2.0,
+            center_y + target_h / 2.0,
+        )
+        return clamp_move_to_image(candidate, image_size, rotation)
+
+    scale = max(scale, min_scale)
     pts = scaled_corners(scale)
     xs = [p[0] for p in pts]
     ys = [p[1] for p in pts]
-    return min(xs), max(xs), min(ys), max(ys)
+    return Rect(min(xs), max(xs), min(ys), max(ys))
+
+
+# ------------------------------------------------------------------
+# Transform ノードへの変換 (execute 時に使用)
+# ------------------------------------------------------------------
+
+
+def compute_transform_offset(rect: Rect, image_size: ImageSize) -> Point:
+    center_x, center_y = image_size.center
+    trim_center_x, trim_center_y = rect.center
+    return (-(trim_center_x - center_x), -(trim_center_y - center_y))
 
 
 # ------------------------------------------------------------------
 # 描画
 # ------------------------------------------------------------------
 
-def draw_custom_image(op, region):
+
+def draw_custom_image(op, region) -> None:
     rotation = getattr(op, "rotation", 0.0)
     if op._image is None or op._image_gpu_texture is None:
         return
@@ -345,31 +560,40 @@ def draw_custom_image(op, region):
         bg_color = bpy.context.preferences.themes[0].image_editor.space.back[:3]
     except Exception:
         bg_color = (0.11, 0.11, 0.11)
-    gpu.state.blend_set('NONE')
+    gpu.state.blend_set("NONE")
     op.shader.bind()
     bg_rect = (
-        (0.0, 0.0), (region.width, 0.0),
-        (region.width, region.height), (0.0, region.height),
+        (0.0, 0.0),
+        (region.width, 0.0),
+        (region.width, region.height),
+        (0.0, region.height),
     )
-    bg_batch = batch_for_shader(op.shader, 'TRI_FAN', {"pos": bg_rect})
+    bg_batch = batch_for_shader(op.shader, "TRI_FAN", {"pos": bg_rect})
     op.shader.uniform_float("color", (bg_color[0], bg_color[1], bg_color[2], 1.0))
     bg_batch.draw(op.shader)
 
     corners_local = [
-        (0.0, image_size[1]), (image_size[0], image_size[1]),
-        (image_size[0], 0.0), (0.0, 0.0),
+        (0.0, image_size[1]),
+        (image_size[0], image_size[1]),
+        (image_size[0], 0.0),
+        (0.0, 0.0),
     ]
-    positions = [rotated_image_to_region(region, image_size, px, py, rotation) for px, py in corners_local]
+    positions = [
+        rotated_image_to_region(region, image_size, px, py, rotation)
+        for px, py in corners_local
+    ]
     uvs = [(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)]
 
     op.image_shader.bind()
     op.image_shader.uniform_sampler("image", op._image_gpu_texture)
     op.image_shader.uniform_float("color", (1.0, 1.0, 1.0, 1.0))
-    image_batch = batch_for_shader(op.image_shader, 'TRI_FAN', {"pos": positions, "texCoord": uvs})
+    image_batch = batch_for_shader(
+        op.image_shader, "TRI_FAN", {"pos": positions, "texCoord": uvs}
+    )
     image_batch.draw(op.image_shader)
 
 
-def draw_callback_px(op, context):
+def draw_callback_px(op, context) -> None:
     try:
         region = op._region
         if region is None:
@@ -377,53 +601,57 @@ def draw_callback_px(op, context):
 
         image_size = op._image_size
         rotation = getattr(op, "rotation", 0.0)
-        dxmin, dxmax, dymin, dymax = op._get_display_rect()
+        rect = op._get_display_rect()
 
         draw_custom_image(op, region)
 
-        p_tl, p_tr, p_br, p_bl = get_trim_rect_screen_corners(
-            region, image_size, dxmin, dxmax, dymin, dymax, rotation
-        )
+        p_tl, p_tr, p_br, p_bl = get_trim_rect_screen_corners(region, image_size, rect)
 
-        gpu.state.blend_set('ALPHA')
+        gpu.state.blend_set("ALPHA")
 
         op.shader.bind()
-        fill_batch = batch_for_shader(op.shader, 'TRI_FAN', {"pos": (p_bl, p_br, p_tr, p_tl)})
+        fill_batch = batch_for_shader(
+            op.shader, "TRI_FAN", {"pos": (p_bl, p_br, p_tr, p_tl)}
+        )
         op.shader.uniform_float("color", (0.0, 0.0, 0.0, 0.15))
         fill_batch.draw(op.shader)
 
         gpu.state.line_width_set(2.0)
-        outline_batch = batch_for_shader(op.shader, 'LINE_LOOP', {"pos": (p_bl, p_br, p_tr, p_tl)})
+        outline_batch = batch_for_shader(
+            op.shader, "LINE_LOOP", {"pos": (p_bl, p_br, p_tr, p_tl)}
+        )
         op.shader.uniform_float("color", (1.0, 1.0, 1.0, 0.9))
         outline_batch.draw(op.shader)
 
-        if op.active_handle == 'ROTATE':
-            draw_trim_grid(op.shader, p_tl, p_tr, p_br, p_bl, mode='FINE')
+        if op.active_handle == "ROTATE":
+            draw_trim_grid(op.shader, p_tl, p_tr, p_br, p_bl, mode="FINE")
         elif op.active_handle is not None:
-            draw_trim_grid(op.shader, p_tl, p_tr, p_br, p_bl, mode='COARSE')
+            draw_trim_grid(op.shader, p_tl, p_tr, p_br, p_bl, mode="COARSE")
 
-        handle_positions = get_handle_positions(region, image_size, dxmin, dxmax, dymin, dymax, rotation)
+        handle_positions = get_handle_positions(region, image_size, rect)
         half = HANDLE_DRAW_SIZE_PX / 2.0
         for key, (hx, hy) in handle_positions.items():
-            is_active = (key == op.active_handle)
+            is_active = key == op.active_handle
             color = (1.0, 0.6, 0.0, 1.0) if is_active else (1.0, 1.0, 1.0, 1.0)
             square = (
-                (hx - half, hy - half), (hx + half, hy - half),
-                (hx + half, hy + half), (hx - half, hy + half),
+                (hx - half, hy - half),
+                (hx + half, hy - half),
+                (hx + half, hy + half),
+                (hx - half, hy + half),
             )
-            handle_batch = batch_for_shader(op.shader, 'TRI_FAN', {"pos": square})
+            handle_batch = batch_for_shader(op.shader, "TRI_FAN", {"pos": square})
             op.shader.uniform_float("color", color)
             handle_batch.draw(op.shader)
 
-        rotate_pos = get_rotate_handle_position(region, image_size, dxmin, dxmax, dymin, dymax, rotation)
-        is_rotating = (op.active_handle == 'ROTATE')
+        rotate_pos = get_rotate_handle_position(region, image_size, rect)
+        is_rotating = op.active_handle == "ROTATE"
 
         # クロップ枠の左下角のY座標(枠の下端ライン)を取得して渡す
         trim_bottom_y = p_bl[1]
         draw_rotate_dial(op.shader, rotate_pos, rotation, is_rotating, trim_bottom_y)
 
         gpu.state.line_width_set(1.0)
-        gpu.state.blend_set('NONE')
+        gpu.state.blend_set("NONE")
 
         if is_rotating:
             draw_rotation_angle_label(region, rotate_pos, rotation)
@@ -432,14 +660,20 @@ def draw_callback_px(op, context):
 
     except ReferenceError:
         try:
-            gpu.state.blend_set('NONE')
+            gpu.state.blend_set("NONE")
         except Exception:
             pass
         return
 
 
-def _grid_lines_at(p_tl, p_tr, p_br, p_bl, divisions):
-    lines = []
+def _grid_lines_at(
+    p_tl: Point,
+    p_tr: Point,
+    p_br: Point,
+    p_bl: Point,
+    divisions: int,
+) -> list[Point]:
+    lines: list[Point] = []
     for i in range(1, divisions):
         t = i / divisions
         top_x = p_tl[0] + (p_tr[0] - p_tl[0]) * t
@@ -458,14 +692,16 @@ def _grid_lines_at(p_tl, p_tr, p_br, p_bl, divisions):
     return lines
 
 
-def draw_trim_grid(shader, p_tl, p_tr, p_br, p_bl, mode='COARSE'):
-    if mode == 'FINE':
+def draw_trim_grid(
+    shader, p_tl: Point, p_tr: Point, p_br: Point, p_bl: Point, mode: str = "COARSE"
+) -> None:
+    if mode == "FINE":
         # 回転中: 9分割の細かいグリッド
         lines = _grid_lines_at(p_tl, p_tr, p_br, p_bl, 9)
         if not lines:
             return
         gpu.state.line_width_set(1.0)
-        grid_batch = batch_for_shader(shader, 'LINES', {"pos": lines})
+        grid_batch = batch_for_shader(shader, "LINES", {"pos": lines})
         shader.uniform_float("color", (1.0, 1.0, 1.0, 0.3))
         grid_batch.draw(shader)
     else:
@@ -474,26 +710,28 @@ def draw_trim_grid(shader, p_tl, p_tr, p_br, p_bl, mode='COARSE'):
         if not lines:
             return
         gpu.state.line_width_set(1.5)
-        grid_batch = batch_for_shader(shader, 'LINES', {"pos": lines})
+        grid_batch = batch_for_shader(shader, "LINES", {"pos": lines})
         shader.uniform_float("color", (1.0, 1.0, 1.0, 0.35))
         grid_batch.draw(shader)
 
 
-def draw_rotate_dial(shader, center, rotation, is_active, trim_bottom_y):
+def draw_rotate_dial(
+    shader, center: Point, rotation: float, is_active: bool, trim_bottom_y: float
+) -> None:
     cx, cy = center
     r = ROTATE_DIAL_RADIUS_PX
     half_segments = 24
 
     rotation_deg = math.degrees(rotation)
 
-    gpu.state.blend_set('ALPHA')
+    gpu.state.blend_set("ALPHA")
 
     # 中心からクロップ下端までのY軸の距離
     dy = trim_bottom_y - cy
 
     # 円の下半分がすべてクロップ枠内にある場合は何も描画しない
     if dy <= -r:
-        gpu.state.blend_set('NONE')
+        gpu.state.blend_set("NONE")
         return
 
     if dy >= 0:
@@ -509,28 +747,35 @@ def draw_rotate_dial(shader, center, rotation, is_active, trim_bottom_y):
         theta_start = ts if ts >= 0 else ts + 2 * math.pi
         theta_end = te if te >= 0 else te + 2 * math.pi
 
-    def angle_at(t):
+    def angle_at(t: float) -> float:
         return theta_start + (theta_end - theta_start) * t
 
     # アーチの描画
     ring_pts = [
-        (cx + r * math.cos(angle_at(i / half_segments)), cy + r * math.sin(angle_at(i / half_segments)))
+        (
+            cx + r * math.cos(angle_at(i / half_segments)),
+            cy + r * math.sin(angle_at(i / half_segments)),
+        )
         for i in range(half_segments + 1)
     ]
-    gpu.state.line_width_set(ROTATE_DIAL_LINE_WIDTH if is_active else ROTATE_DIAL_LINE_WIDTH_INACTIVE)
-    ring_batch = batch_for_shader(shader, 'LINE_STRIP', {"pos": ring_pts})
+    gpu.state.line_width_set(
+        ROTATE_DIAL_LINE_WIDTH if is_active else ROTATE_DIAL_LINE_WIDTH_INACTIVE
+    )
+    ring_batch = batch_for_shader(shader, "LINE_STRIP", {"pos": ring_pts})
     ring_alpha = 0.7 if is_active else 0.4
     shader.uniform_float("color", (1.0, 1.0, 1.0, ring_alpha))
     ring_batch.draw(shader)
 
-    def draw_dot(pos, radius, color):
+    def draw_dot(
+        pos: Point, radius: float, color: tuple[float, float, float, float]
+    ) -> None:
         px, py = pos
         pts = []
         segs = 8
         for i in range(segs):
             a = (i / segs) * 2 * math.pi
             pts.append((px + radius * math.cos(a), py + radius * math.sin(a)))
-        batch = batch_for_shader(shader, 'TRI_FAN', {"pos": pts})
+        batch = batch_for_shader(shader, "TRI_FAN", {"pos": pts})
         shader.uniform_float("color", color)
         batch.draw(shader)
 
@@ -543,7 +788,7 @@ def draw_rotate_dial(shader, center, rotation, is_active, trim_bottom_y):
         if dot_pos[1] >= trim_bottom_y:
             continue
 
-        is_major = (deg % 90 == 0)
+        is_major = deg % 90 == 0
         if is_major:
             draw_dot(dot_pos, 1.6, (1.0, 1.0, 1.0, 0.7 if is_active else 0.45))
         else:
@@ -555,10 +800,10 @@ def draw_rotate_dial(shader, center, rotation, is_active, trim_bottom_y):
     if marker_pos[1] < trim_bottom_y:
         draw_dot(marker_pos, 2.5, indicator_color)
 
-    gpu.state.blend_set('NONE')
+    gpu.state.blend_set("NONE")
 
 
-def draw_rotation_angle_label(region, center, rotation):
+def draw_rotation_angle_label(region, center: Point, rotation: float) -> None:
     font_id = 0
     rotation_deg = math.degrees(rotation)
     text = f"{rotation_deg:.1f}°"
@@ -571,19 +816,19 @@ def draw_rotation_angle_label(region, center, rotation):
     blf.draw(font_id, text)
 
 
-def draw_aspect_ratio_hud(op, region):
+def draw_aspect_ratio_hud(op, region) -> None:
     font_id = 0
     x = 12
     y = region.height - 24
     line_height = 18
     blf.size(font_id, 13)
 
-    enum_to_key = {'1_1': '1', '4_3': '2', '3_2': '3', '16_9': '4', '9_16': '5'}
-    current = getattr(op, "aspect_ratio_enum", '3_2')
+    enum_to_key = {"1_1": "1", "4_3": "2", "3_2": "3", "16_9": "4", "9_16": "5"}
+    current = getattr(op, "aspect_ratio_enum", "3_2")
     active_key = enum_to_key.get(current)
 
     label_map = dict(ASPECT_KEY_LABELS)
-    current_label = "Custom" if current == 'CUSTOM' else label_map.get(active_key, "")
+    current_label = "Custom" if current == "CUSTOM" else label_map.get(active_key, "")
 
     blf.color(font_id, 1.0, 1.0, 1.0, 0.95)
     blf.position(font_id, x, y, 0)
@@ -591,7 +836,7 @@ def draw_aspect_ratio_hud(op, region):
     y -= line_height
 
     for key, label in ASPECT_KEY_LABELS:
-        is_active = (key == active_key)
+        is_active = key == active_key
         if is_active:
             blf.color(font_id, 1.0, 0.75, 0.2, 1.0)
         else:
@@ -599,9 +844,3 @@ def draw_aspect_ratio_hud(op, region):
         blf.position(font_id, x, y, 0)
         blf.draw(font_id, f"{key}: {label}")
         y -= line_height
-
-    # y -= 4
-    # rotation_deg = math.degrees(getattr(op, "rotation", 0.0))
-    # blf.color(font_id, 1.0, 1.0, 1.0, 0.95)
-    # blf.position(font_id, x, y, 0)
-    # blf.draw(font_id, f"Rotation: {rotation_deg:.1f}°  (drag compass, Shift=snap 15°)")

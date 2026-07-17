@@ -1,5 +1,5 @@
-import bpy
-from bpy.types import Panel, Context
+from bpy.types import Panel
+
 from ..utils.ui import *
 
 
@@ -54,7 +54,7 @@ class RETOUCH_PT_lift_gamma_gain(RetouchPanelMixin, Panel):
     bl_label = "Lift/Gamma/Gain"
     bl_parent_id = RETOUCH_PT_light.bl_idname
     bl_order = 2
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
@@ -68,7 +68,7 @@ class RETOUCH_PT_curves(RetouchPanelMixin, Panel):
     bl_label = "RGB Curves"
     bl_parent_id = RETOUCH_PT_light.bl_idname
     bl_order = 3
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
@@ -90,8 +90,8 @@ class RETOUCH_PT_color(RetouchPanelMixin, Panel):
         if wb_node := get_node_or_input(context, "Color Balance.001"):
             row = layout.row(align=True)
             row.label(text="White Balance")
-            row.operator("ui.eyedropper_color", text="", icon="EYEDROPPER").prop_data_path = (
-                get_node_prop_path(context, wb_node, "input_whitepoint")
+            row.operator("ui.eyedropper_color", text="", icon="EYEDROPPER").prop_data_path = get_node_prop_path(
+                context, wb_node, "input_whitepoint"
             )
 
         self.draw_prop(layout, get_node_or_input(context, "Color Balance.001", 15), "default_value", "Temperature")
@@ -105,7 +105,7 @@ class RETOUCH_PT_hue_correct(RetouchPanelMixin, Panel):
     bl_label = "Hue Correct"
     bl_parent_id = RETOUCH_PT_color.bl_idname
     bl_order = 5
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         if curves_node := get_node_or_input(context, "Hue Correct"):
@@ -117,7 +117,7 @@ class RETOUCH_PT_color_balance(RetouchPanelMixin, Panel):
     bl_label = "Color Balance"
     bl_parent_id = RETOUCH_PT_color.bl_idname
     bl_order = 6
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout

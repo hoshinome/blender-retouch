@@ -1,5 +1,5 @@
-import bpy
 from bpy.types import Panel
+
 from .ui_panel import RetouchPanelMixin
 
 
@@ -11,10 +11,8 @@ class RETOUCH_PT_image_trim(RetouchPanelMixin, Panel):
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
-        col.operator("retouch.image_trim", text="Start Trim", icon='FULLSCREEN_ENTER')
-        col.operator("retouch.image_trim_reset", text="Reset", icon='LOOP_BACK')
+        col.operator("retouch.image_trim", text="Start Trim", icon="FULLSCREEN_ENTER")
+        col.operator("retouch.image_trim_reset", text="Reset", icon="LOOP_BACK")
 
 
-classes = (
-    RETOUCH_PT_image_trim,
-)
+classes = (RETOUCH_PT_image_trim,)

@@ -1,10 +1,9 @@
 import os
-import shutil
-import bpy
+
 from bpy.types import Panel
 
-from .ui_panel import RetouchPanelMixin
 from ..utils.preset import *
+from .ui_panel import RetouchPanelMixin
 
 
 class RETOUCH_PT_preset(RetouchPanelMixin, Panel):
@@ -140,6 +139,4 @@ class RETOUCH_PT_preset(RetouchPanelMixin, Panel):
         return base_name
 
 
-classes = (
-    RETOUCH_PT_preset,
-)
+classes = (RETOUCH_PT_preset,)

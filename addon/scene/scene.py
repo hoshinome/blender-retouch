@@ -1,4 +1,3 @@
-import bpy
 from bpy.props import EnumProperty, StringProperty
 from bpy.types import PropertyGroup
 
@@ -31,6 +30,4 @@ class RETOUCH_PG_tabs(PropertyGroup):
     )
 
 
-classes = (
-    RETOUCH_PG_tabs,
-)
+classes = (RETOUCH_PG_tabs,)
