@@ -2,11 +2,12 @@ import bpy
 
 from . import add_nodes, preset_ops, template, trim_ops
 
-classes = []
-classes += add_nodes.classes
-classes += preset_ops.classes
-classes += template.classes
-classes += trim_ops.classes
+classes = (
+    *add_nodes.classes,
+    *preset_ops.classes,
+    *template.classes,
+    *trim_ops.classes,
+)
 
 
 def register():
@@ -17,6 +18,3 @@ def register():
 def unregister():
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-
-    if "ic_revert_data" in getattr(bpy.context, "window_manager", {}):
-        del bpy.context.window_manager["ic_revert_data"]

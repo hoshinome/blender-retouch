@@ -62,18 +62,6 @@ def _get_last_trim(image_name: str, image_size: ImageSize):
     return Rect(xmin, xmax, ymin, ymax), cached["rotation"]
 
 
-# def revert_update(self, context) -> None:
-#     if self.revert_to_original:
-#         revert_data = context.window_manager.get("ic_revert_data")
-#         if revert_data:
-#             original_size = revert_data["size"]
-#             self.xmin = 0
-#             self.ymin = 0
-#             self.xmax = original_size[0]
-#             self.ymax = original_size[1]
-#         self.revert_to_original = False
-
-
 class RETOUCH_OT_image_trim(Operator):
     bl_idname = "retouch.image_trim"
     bl_label = "Image Trim"
@@ -132,6 +120,10 @@ class RETOUCH_OT_image_trim(Operator):
     _region = None
     _image_size: ImageSize = ImageSize(1, 1)
     _image = None
+    _original_size: ImageSize | None = None
+    _original_render_res: tuple[int, int] | None = None
+    _original_render_percentage: int | None = None
+    _transform_node_name: str | None = None
 
     active_handle: str | None = None
     drag_start_mouse: tuple[float, float] = (0, 0)
@@ -255,11 +247,10 @@ class RETOUCH_OT_image_trim(Operator):
             return {"CANCELLED"}
 
         image_size = ImageSize(*image.size[:])
-        context.window_manager["ic_revert_data"] = {
-            "size": tuple(image_size),
-            "render_res": (scene.render.resolution_x, scene.render.resolution_y),
-            "render_percentage": scene.render.resolution_percentage,
-        }
+        self._original_size = image_size
+        self._original_render_res = (scene.render.resolution_x, scene.render.resolution_y)
+        self._original_render_percentage = scene.render.resolution_percentage
+        self._transform_node_name = None
 
         self._image_size = image_size
         self._image = image
@@ -490,12 +481,11 @@ class RETOUCH_OT_image_trim(Operator):
 
     def execute(self, context):
         scene = context.scene
-        revert_data = context.window_manager.get("ic_revert_data")
-        if not revert_data:
+        if self._original_size is None:
             self.report({"ERROR"}, "Original image data not found. Please run the tool again.")
             return {"CANCELLED"}
 
-        original_size = ImageSize(*revert_data["size"])
+        original_size = self._original_size
 
         safe_xmin = self.xmin
         safe_ymin = self.ymin
@@ -517,8 +507,7 @@ class RETOUCH_OT_image_trim(Operator):
             self.report({"ERROR"}, str(err))
             return {"CANCELLED"}
 
-        revert_data["transform_node_name"] = transform_node.name
-        context.window_manager["ic_revert_data"] = revert_data
+        self._transform_node_name = transform_node.name
 
         safe_rect = Rect(safe_xmin, safe_xmax, safe_ymin, safe_ymax)
         offset_x, offset_y = compute_transform_offset(safe_rect, original_size)
@@ -547,8 +536,11 @@ class RETOUCH_OT_image_trim(Operator):
 
         self._image_gpu_texture = None
 
-        if cancelled and "ic_revert_data" in context.window_manager:
-            del context.window_manager["ic_revert_data"]
+        if cancelled:
+            self._original_size = None
+            self._original_render_res = None
+            self._original_render_percentage = None
+            self._transform_node_name = None
 
         return {"CANCELLED"} if cancelled else {"FINISHED"}
 
@@ -588,10 +580,6 @@ class RETOUCH_OT_image_trim_reset(Operator):
 
         # 再トリム時に古いキャッシュを読み込まないよう履歴を削除
         _last_trim_cache.pop(image.name, None)
-
-        # ゴミとして残っている一時データがあれば破棄
-        if "ic_revert_data" in context.window_manager:
-            del context.window_manager["ic_revert_data"]
 
         return {"FINISHED"}
 
