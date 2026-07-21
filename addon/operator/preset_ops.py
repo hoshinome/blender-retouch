@@ -1,12 +1,22 @@
 import os
 import shutil
-import bpy
-from bpy_extras.io_utils import ExportHelper, ImportHelper
+
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import Operator
+from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 from ..utils.compositor import ensure_compositor_nodes
-from ..utils.preset import *
+from ..utils.preset import (
+    sanitize_preset_name,
+    capture_preset,
+    normalize_folder,
+    get_preset_path,
+    write_preset_file,
+    load_preset_file,
+    restore_node_state,
+    get_preset_dir,
+    get_preset_extension,
+)
 
 
 class RETOUCH_OT_save_preset(Operator):
@@ -331,7 +341,7 @@ class RETOUCH_OT_rename_preset_folder(Operator):
             if current_folder == folder_path:
                 retouch_props.retouch_preset_folder = new_folder_path
             elif current_folder.startswith(f"{folder_path}/"):
-                retouch_props.retouch_preset_folder = new_folder_path + current_folder[len(folder_path):]
+                retouch_props.retouch_preset_folder = new_folder_path + current_folder[len(folder_path) :]
 
         self.report({"INFO"}, f"Renamed folder to: {new_base_name}")
         return {"FINISHED"}

@@ -1,6 +1,6 @@
 import bpy
-from . import add_nodes, preset_ops, template
 
+from . import add_nodes, preset_ops, template
 
 classes = []
 classes += add_nodes.classes

@@ -1,4 +1,3 @@
-import bpy
 from bpy.props import EnumProperty, StringProperty
 from bpy.types import PropertyGroup
 

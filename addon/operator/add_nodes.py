@@ -1,9 +1,18 @@
 import os
+
 import bpy
+from bpy.props import StringProperty
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty
-from ..utils.compositor import *
+
+from ..utils.compositor import (
+    NODETREE_NAME,
+    create_compositor_nodes,
+    set_scene_resolution,
+    find_or_create_image_node,
+    connect_to_outputs,
+    apply_retouch_to_scene,
+)
 
 
 class RETOUCH_OT_add_nodes(Operator, ImportHelper):

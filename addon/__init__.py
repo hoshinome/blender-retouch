@@ -1,7 +1,7 @@
 import bpy
 from . import (ui,
                operator,
-               settings,
+               scene,
                template,
                preferences)
 
@@ -9,7 +9,7 @@ from . import (ui,
 modules = (
     ui,
     operator,
-    settings,
+    scene,
     template,
     preferences
 )

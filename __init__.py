@@ -12,11 +12,12 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 from . import addon, addon_updater_ops
+
 bl_info = {
     "name": "Blender Retouch",
     "author": "wawawa",
     "description": "retouch your images with blender",
-    "blender": (5, 1, 0),
+    "blender": (5, 2, 0),
     "version": (1, 7, 2),
     "location": "",
     "warning": "",

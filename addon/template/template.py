@@ -1,6 +1,7 @@
 import hashlib
 import os
 import shutil
+
 import bpy
 
 TEMPLATE_NAME = "Blender Retouch"
@@ -9,7 +10,7 @@ MARKER_READ_ERROR = object()
 
 
 def get_template_dir():
-    user_scripts = bpy.utils.user_resource('SCRIPTS')
+    user_scripts = bpy.utils.user_resource("SCRIPTS")
     return os.path.join(user_scripts, "startup", "bl_app_templates_user", TEMPLATE_NAME)
 
 

@@ -1,10 +1,9 @@
 import os
-import shutil
-import bpy
+
 from bpy.types import Panel
 
+from ..utils.preset import get_preset_dir, normalize_folder, get_subfolders, get_preset_files
 from .ui_panel import RetouchPanelMixin
-from ..utils.preset import *
 
 
 class RETOUCH_PT_preset(RetouchPanelMixin, Panel):

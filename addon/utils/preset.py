@@ -1,8 +1,9 @@
 import json
 import os
 import re
-import bpy
 import zlib
+
+import bpy
 
 IGNORED_NODE_TYPES = {"IMAGE", "VIEWER", "GROUP_OUTPUT"}
 
@@ -78,26 +79,21 @@ def get_preset_path(preset_name: str) -> str:
 def get_preset_files(preset_dir: str) -> list[str]:
     if not os.path.isdir(preset_dir):
         return []
-    preset_files = [
-        f for f in os.listdir(preset_dir)
-        if f.endswith(get_preset_extension()) and os.path.isfile(os.path.join(preset_dir, f))
-    ]
+    preset_files = [f for f in os.listdir(preset_dir) if f.endswith(get_preset_extension()) and os.path.isfile(os.path.join(preset_dir, f))]
     return sorted(preset_files)
 
 
 def get_subfolders(preset_dir: str) -> list[str]:
     if not os.path.isdir(preset_dir):
         return []
-    return sorted(
-        entry for entry in os.listdir(preset_dir)
-        if os.path.isdir(os.path.join(preset_dir, entry))
-    )
+    return sorted(entry for entry in os.listdir(preset_dir) if os.path.isdir(os.path.join(preset_dir, entry)))
+
 
 # --- File I/O ---
 
 
 def write_preset_file(path: str, payload: dict) -> None:
-    json_bytes = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+    json_bytes = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     compressed_data = zlib.compress(json_bytes, level=6)
     with open(path, "wb") as handle:
         handle.write(compressed_data)
@@ -113,7 +109,7 @@ def load_preset_file(path: str) -> dict | None:
     except zlib.error:
         json_bytes = raw_data
     try:
-        return json.loads(json_bytes.decode('utf-8'))
+        return json.loads(json_bytes.decode("utf-8"))
     except Exception:
         return None
 
@@ -204,7 +200,16 @@ def serialize_node(node: bpy.types.Node) -> dict:
         )
 
     for prop in node.bl_rna.properties:
-        if prop.identifier in {"name", "label", "location", "inputs", "outputs", "type", "parent", "id_data"}:
+        if prop.identifier in {
+            "name",
+            "label",
+            "location",
+            "inputs",
+            "outputs",
+            "type",
+            "parent",
+            "id_data",
+        }:
             continue
         try:
             value = getattr(node, prop.identifier)
@@ -235,11 +240,7 @@ def capture_preset(tree: bpy.types.NodeTree | None) -> dict:
 
     return {
         "version": 1,
-        "nodes": [
-            serialize_node(node)
-            for node in tree.nodes
-            if getattr(node, "bl_idname", None) and node.type not in IGNORED_NODE_TYPES
-        ],
+        "nodes": [serialize_node(node) for node in tree.nodes if getattr(node, "bl_idname", None) and node.type not in IGNORED_NODE_TYPES],
     }
 
 
@@ -338,7 +339,6 @@ def get_preset_files(preset_dir: str) -> list[str]:
         return []
 
     preset_files = [
-        filename for filename in os.listdir(preset_dir)
-        if filename.endswith(".brp") and os.path.isfile(os.path.join(preset_dir, filename))
+        filename for filename in os.listdir(preset_dir) if filename.endswith(".brp") and os.path.isfile(os.path.join(preset_dir, filename))
     ]
     return sorted(preset_files)

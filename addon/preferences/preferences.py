@@ -1,52 +1,58 @@
 import bpy
 from bpy.types import AddonPreferences
-from ... import addon_updater_ops, __package__
+
+from ... import __package__, addon_updater_ops
 
 
 @addon_updater_ops.make_annotations
-class RETOUCH_MT_updater(AddonPreferences):
+class BRPreferences(AddonPreferences):
     bl_idname = __package__
 
     auto_check_update = bpy.props.BoolProperty(
         name="Auto-check for Update",
         description="If enabled, auto-check for updates using an interval",
-        default=True)
+        default=True,
+    )
 
     updater_interval_months = bpy.props.IntProperty(
-        name='Months',
+        name="Months",
         description="Number of months between checking for updates",
         default=0,
-        min=0)
+        min=0,
+    )
 
     updater_interval_days = bpy.props.IntProperty(
-        name='Days',
+        name="Days",
         description="Number of days between checking for updates",
         default=7,
         min=0,
-        max=31)
+        max=31,
+    )
 
     updater_interval_hours = bpy.props.IntProperty(
-        name='Hours',
+        name="Hours",
         description="Number of hours between checking for updates",
         default=0,
         min=0,
-        max=23)
+        max=23,
+    )
 
     updater_interval_minutes = bpy.props.IntProperty(
-        name='Minutes',
+        name="Minutes",
         description="Number of minutes between checking for updates",
         default=0,
         min=0,
-        max=59)
+        max=59,
+    )
 
     def draw(self, context):
         layout = self.layout
 
         box = layout.box()
-        box.label(text="Template", icon='FILE_BLEND')
+        box.label(text="Template", icon="FILE_BLEND")
         col = box.column(align=True)
         col.scale_y = 2
-        col.operator("retouch.uninstall_template", icon='TRASH')
+        col.operator("retouch.uninstall_template", icon="TRASH")
 
         # Works best if a column, or even just self.layout.
         mainrow = layout.row()
@@ -69,5 +75,5 @@ class RETOUCH_MT_updater(AddonPreferences):
 
 
 classes = (
-    RETOUCH_MT_updater,
+    BRPreferences,
 )

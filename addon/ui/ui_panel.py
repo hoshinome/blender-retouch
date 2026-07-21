@@ -1,6 +1,6 @@
-import bpy
-from bpy.types import Panel, Context
-from ..utils.ui import *
+from bpy.types import Panel
+
+from ..utils.ui import get_node_or_input, get_node_prop_path
 
 
 class RetouchPanelMixin:
@@ -54,7 +54,7 @@ class RETOUCH_PT_lift_gamma_gain(RetouchPanelMixin, Panel):
     bl_label = "Lift/Gamma/Gain"
     bl_parent_id = RETOUCH_PT_light.bl_idname
     bl_order = 2
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
@@ -68,7 +68,7 @@ class RETOUCH_PT_curves(RetouchPanelMixin, Panel):
     bl_label = "RGB Curves"
     bl_parent_id = RETOUCH_PT_light.bl_idname
     bl_order = 3
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
@@ -90,9 +90,7 @@ class RETOUCH_PT_color(RetouchPanelMixin, Panel):
         if wb_node := get_node_or_input(context, "Color Balance.001"):
             row = layout.row(align=True)
             row.label(text="White Balance")
-            row.operator("ui.eyedropper_color", text="", icon="EYEDROPPER").prop_data_path = (
-                get_node_prop_path(context, wb_node, "input_whitepoint")
-            )
+            row.operator("ui.eyedropper_color", text="", icon="EYEDROPPER").prop_data_path = get_node_prop_path(context, wb_node, "input_whitepoint")
 
         self.draw_prop(layout, get_node_or_input(context, "Color Balance.001", 15), "default_value", "Temperature")
         self.draw_prop(layout, get_node_or_input(context, "Color Balance.001", 16), "default_value", "Tint")
@@ -105,7 +103,7 @@ class RETOUCH_PT_hue_correct(RetouchPanelMixin, Panel):
     bl_label = "Hue Correct"
     bl_parent_id = RETOUCH_PT_color.bl_idname
     bl_order = 5
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         if curves_node := get_node_or_input(context, "Hue Correct"):
@@ -117,7 +115,7 @@ class RETOUCH_PT_color_balance(RetouchPanelMixin, Panel):
     bl_label = "Color Balance"
     bl_parent_id = RETOUCH_PT_color.bl_idname
     bl_order = 6
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_options = {"DEFAULT_CLOSED"}
 
     def draw(self, context):
         layout = self.layout
@@ -153,19 +151,26 @@ class RETOUCH_PT_effect(RetouchPanelMixin, Panel):
             self.draw_prop(col, get_node_or_input(context, "Vignette", 3), "default_value", "Corner Roundness")
             self.draw_prop(col, get_node_or_input(context, "Vignette", 4), "default_value", "Scale")
         elif tabs == "Grain":
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 1), "default_value")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 2), "default_value", "Strength")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 3), "default_value", "Scale")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 4), "default_value", "Roughness")
-            layout.label(text="===Advances===")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 5), "default_value", "Black Level")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 6), "default_value", "Detail")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 7), "default_value", "Shadows")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 8), "default_value", "Midtones")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 9), "default_value", "Highlights")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 10), "default_value", "Sha/Mid")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 11), "default_value", "Mid/High")
-            self.draw_prop(layout, get_node_or_input(context, "BR_Grain", 12), "default_value", "Seed")
+            self.draw_prop(layout, get_node_or_input(context, "Film Grain", 1), "default_value", "Strength")
+            self.draw_prop(layout, get_node_or_input(context, "Film Grain", 2), "default_value", "")
+
+            type_socket = get_node_or_input(context, "Film Grain", 2)
+            if type_socket is not None and type_socket.default_value == "Custom":
+                layout.prop(get_node_or_input(context, "Film Grain", 3), "default_value", text="Scale", expand=True)
+                self.draw_prop(layout, get_node_or_input(context, "Film Grain", 4), "default_value", "Style")
+
+            self.draw_prop(layout, get_node_or_input(context, "Film Grain", 5), "default_value", "Animated")
+
+            custom_socket = get_node_or_input(context, "Film Grain", 4)
+            if custom_socket is not None and custom_socket.default_value == "Custom Style" and type_socket.default_value == "Custom":
+                self.draw_prop(layout, get_node_or_input(context, "Film Grain", 6), "default_value", "ISO")
+                self.draw_prop(layout, get_node_or_input(context, "Film Grain", 7), "default_value", "Softness")
+                self.draw_prop(layout, get_node_or_input(context, "Film Grain", 8), "default_value", "Acutance")
+                self.draw_prop(layout, get_node_or_input(context, "Film Grain", 9), "default_value", "Coarseness")
+                self.draw_prop(layout, get_node_or_input(context, "Film Grain", 10), "default_value", "Patchiness")
+                self.draw_prop(layout, get_node_or_input(context, "Film Grain", 11), "default_value", "Saturation")
+                self.draw_prop(layout, get_node_or_input(context, "Film Grain", 12), "default_value", "Luma bias")
+                self.draw_prop(layout, get_node_or_input(context, "Film Grain", 13), "default_value", "Texture Scale")
 
 
 classes = (
