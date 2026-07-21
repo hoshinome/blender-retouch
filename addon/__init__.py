@@ -1,13 +1,16 @@
 import bpy
 from . import (ui,
                operator,
-               settings,
+               scene,
+               template,
                preferences)
+
 
 modules = (
     ui,
     operator,
-    settings,
+    scene,
+    template,
     preferences
 )
 

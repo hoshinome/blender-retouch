@@ -1,8 +1,10 @@
 import os
+
 import bpy
+from bpy.props import StringProperty
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty
+
 from ..utils.compositor import *
 
 
@@ -57,6 +59,9 @@ class RETOUCH_OT_add_nodes(Operator, ImportHelper):
 
         scene = apply_retouch_to_scene(self, context, self.filepath, blend_file_path, NODETREE_NAME)
         if scene is None:
+            return {"CANCELLED"}
+
+        if not connect_film_grain_node(self, scene.compositing_node_group):
             return {"CANCELLED"}
 
         try:
