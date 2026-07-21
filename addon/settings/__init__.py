@@ -1,6 +1,5 @@
 import bpy
-from bpy.props import BoolProperty, PointerProperty
-
+from bpy.props import PointerProperty, BoolProperty
 from . import scene
 
 classes = []

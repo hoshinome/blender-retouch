@@ -1,9 +1,16 @@
 import os
-
+import shutil
+import bpy
 from bpy.types import Panel
 
 from ..utils.preset import *
-from .ui_panel import RetouchPanelMixin
+
+
+class RetouchPanelMixin:
+    bl_space_type = "NODE_EDITOR"
+    bl_region_type = "UI"
+    bl_context = ""
+    bl_category = "BLENDER RETOUCH"
 
 
 class RETOUCH_PT_preset(RetouchPanelMixin, Panel):
@@ -27,6 +34,7 @@ class RETOUCH_PT_preset(RetouchPanelMixin, Panel):
 
         outer.separator(factor=1)
         self._draw_breadcrumbs(outer, current_folder)
+        # outer.separator(factor=0.8)
 
         subfolders = get_subfolders(current_dir)
         preset_files = get_preset_files(current_dir)

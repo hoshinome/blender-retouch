@@ -1,9 +1,9 @@
 import os
 import shutil
-
+import bpy
+from bpy_extras.io_utils import ExportHelper, ImportHelper
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import Operator
-from bpy_extras.io_utils import ExportHelper, ImportHelper
 
 from ..utils.compositor import ensure_compositor_nodes
 from ..utils.preset import *

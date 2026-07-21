@@ -56,10 +56,7 @@ def connect_to_outputs(node_tree: bpy.types.NodeTree, out_socket: bpy.types.Node
         group_out = node_tree.nodes.new(type="NodeGroupOutput")
         group_out.location = (500, 200)
 
-    socket_names = [
-        s.name for s in node_tree.interface.items_tree
-        if s.item_type == "SOCKET" and s.in_out == "OUTPUT"
-    ]
+    socket_names = [s.name for s in node_tree.interface.items_tree if s.item_type == "SOCKET" and s.in_out == "OUTPUT"]
     if "Image" not in socket_names:
         node_tree.interface.new_socket(name="Image", in_out="OUTPUT", socket_type="NodeSocketColor")
 
@@ -117,11 +114,12 @@ def _pick_appended_group(nodetree_name: str, before_names: set[str]) -> bpy.type
 
     matches = [n for n in new_names if n == nodetree_name or n.startswith(f"{nodetree_name}.")]
     if matches:
+
         def sort_key(name: str) -> tuple[int, int]:
             if name == nodetree_name:
                 return (0, 0)
             try:
-                suffix = name[len(nodetree_name) + 1:]
+                suffix = name[len(nodetree_name) + 1 :]
                 return (1, int(suffix))
             except ValueError:
                 return (1, 9999)
