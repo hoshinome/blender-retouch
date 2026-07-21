@@ -25,4 +25,6 @@ class RETOUCH_OT_uninstall_template(Operator):
         return context.window_manager.invoke_confirm(self, event)
 
 
-classes = (RETOUCH_OT_uninstall_template,)
+classes = (
+    RETOUCH_OT_uninstall_template,
+)

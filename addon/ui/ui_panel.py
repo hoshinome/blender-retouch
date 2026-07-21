@@ -1,6 +1,6 @@
 from bpy.types import Panel
 
-from ..utils.ui import *
+from ..utils.ui import get_node_or_input, get_node_prop_path
 
 
 class RetouchPanelMixin:
@@ -151,20 +151,18 @@ class RETOUCH_PT_effect(RetouchPanelMixin, Panel):
             self.draw_prop(col, get_node_or_input(context, "Vignette", 3), "default_value", "Corner Roundness")
             self.draw_prop(col, get_node_or_input(context, "Vignette", 4), "default_value", "Scale")
         elif tabs == "Grain":
-            # self.draw_prop(bpy.data.node_groups["BlenderRetouch_Nodes"].nodes["Film Grain"].inputs[1], "default_value", text="Strength")
             self.draw_prop(layout, get_node_or_input(context, "Film Grain", 1), "default_value", "Strength")
             self.draw_prop(layout, get_node_or_input(context, "Film Grain", 2), "default_value", "")
-            # self.draw_prop(layout, get_node_or_input(context, "Film Grain", 3), "default_value", ""
 
             type_socket = get_node_or_input(context, "Film Grain", 2)
-            if type_socket.default_value == "Custom":
+            if type_socket is not None and type_socket.default_value == "Custom":
                 layout.prop(get_node_or_input(context, "Film Grain", 3), "default_value", text="Scale", expand=True)
                 self.draw_prop(layout, get_node_or_input(context, "Film Grain", 4), "default_value", "Style")
 
             self.draw_prop(layout, get_node_or_input(context, "Film Grain", 5), "default_value", "Animated")
 
             custom_socket = get_node_or_input(context, "Film Grain", 4)
-            if custom_socket.default_value == "Custom Style":
+            if custom_socket is not None and custom_socket.default_value == "Custom Style" and type_socket.default_value == "Custom":
                 self.draw_prop(layout, get_node_or_input(context, "Film Grain", 6), "default_value", "ISO")
                 self.draw_prop(layout, get_node_or_input(context, "Film Grain", 7), "default_value", "Softness")
                 self.draw_prop(layout, get_node_or_input(context, "Film Grain", 8), "default_value", "Acutance")

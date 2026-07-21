@@ -2,7 +2,7 @@ import os
 
 from bpy.types import Panel
 
-from ..utils.preset import *
+from ..utils.preset import get_preset_dir, normalize_folder, get_subfolders, get_preset_files
 from .ui_panel import RetouchPanelMixin
 
 
@@ -139,4 +139,6 @@ class RETOUCH_PT_preset(RetouchPanelMixin, Panel):
         return base_name
 
 
-classes = (RETOUCH_PT_preset,)
+classes = (
+    RETOUCH_PT_preset,
+)

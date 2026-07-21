@@ -5,7 +5,15 @@ from bpy.props import StringProperty
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
 
-from ..utils.compositor import *
+from ..utils.compositor import (
+    NODETREE_NAME,
+    create_compositor_nodes,
+    set_scene_resolution,
+    find_or_create_image_node,
+    connect_to_outputs,
+    apply_retouch_to_scene,
+    connect_film_grain_node,
+)
 
 
 class RETOUCH_OT_add_nodes(Operator, ImportHelper):
@@ -72,4 +80,6 @@ class RETOUCH_OT_add_nodes(Operator, ImportHelper):
         return {"FINISHED"}
 
 
-classes = (RETOUCH_OT_add_nodes,)
+classes = (
+    RETOUCH_OT_add_nodes,
+)

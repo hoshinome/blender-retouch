@@ -30,4 +30,6 @@ class RETOUCH_PG_tabs(PropertyGroup):
     )
 
 
-classes = (RETOUCH_PG_tabs,)
+classes = (
+    RETOUCH_PG_tabs,
+)

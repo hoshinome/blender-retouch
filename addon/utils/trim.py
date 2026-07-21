@@ -112,10 +112,7 @@ def find_single_image_node(node_tree):
         raise ImageNodeLookupError("No Image node found in the compositor.")
     if len(image_nodes) > 1:
         names = ", ".join(n.name for n in image_nodes)
-        raise ImageNodeLookupError(
-            f"Multiple Image nodes found ({names}). "
-            "Please narrow it down to a single target before running this."
-        )
+        raise ImageNodeLookupError(f"Multiple Image nodes found ({names}). Please narrow it down to a single target before running this.")
 
     return image_nodes[0]
 
@@ -141,10 +138,7 @@ def get_transform_node(node_tree, image_node):
     if link_info is not None:
         _, to_socket, _ = link_info
         downstream_node = to_socket.node
-        if (
-            downstream_node.type == "TRANSFORM"
-            and downstream_node.bl_idname == "CompositorNodeTransform"
-        ):
+        if downstream_node.type == "TRANSFORM" and downstream_node.bl_idname == "CompositorNodeTransform":
             return downstream_node
 
     raise TransformNodeLookupError(
@@ -219,9 +213,7 @@ def get_handle_positions(
         "B": (center_x, rect.ymin),
         "BR": (rect.xmax, rect.ymin),
     }
-    return {
-        key: image_to_region(region, image_size, x, y) for key, (x, y) in coords.items()
-    }
+    return {key: image_to_region(region, image_size, x, y) for key, (x, y) in coords.items()}
 
 
 def get_rotate_handle_position(region, image_size: ImageSize, rect: Rect) -> Point:
@@ -234,9 +226,7 @@ def get_rotate_handle_position(region, image_size: ImageSize, rect: Rect) -> Poi
     return (bottom_center_screen[0], bottom_center_screen[1] - outward)
 
 
-def get_trim_rect_screen_corners(
-    region, image_size: ImageSize, rect: Rect
-) -> list[Point]:
+def get_trim_rect_screen_corners(region, image_size: ImageSize, rect: Rect) -> list[Point]:
     return [image_to_region(region, image_size, px, py) for px, py in rect.corners()]
 
 
@@ -305,10 +295,7 @@ def clamp_rect_to_image(
             (nx_max, ny_max),
             (nx_min, ny_max),
         ]
-        return all(
-            point_within_rotated_image(cx, cy, rotation, img_w, img_h)
-            for cx, cy in corners
-        )
+        return all(point_within_rotated_image(cx, cy, rotation, img_w, img_h) for cx, cy in corners)
 
     if corners_fit_within_image(1.0):
         scale = 1.0
@@ -400,15 +387,10 @@ def clamp_move_to_image(
             (cx + half_w, cy + half_h),
             (cx - half_w, cy + half_h),
         ]
-        return all(
-            point_within_rotated_image(px, py, rotation, img_w, img_h)
-            for px, py in corners
-        )
+        return all(point_within_rotated_image(px, py, rotation, img_w, img_h) for px, py in corners)
 
     if fits_at_center(center_x, center_y):
-        return Rect(
-            center_x - half_w, center_x + half_w, center_y - half_h, center_y + half_h
-        )
+        return Rect(center_x - half_w, center_x + half_w, center_y - half_h, center_y + half_h)
 
     if not fits_at_center(img_center_x, img_center_y):
         return clamp_rect_to_image(
@@ -473,16 +455,11 @@ def clamp_resize_to_image(
     ]
 
     def scaled_corners(scale: float) -> list[Point]:
-        return [
-            (anchor_x + (cx - anchor_x) * scale, anchor_y + (cy - anchor_y) * scale)
-            for cx, cy in corners
-        ]
+        return [(anchor_x + (cx - anchor_x) * scale, anchor_y + (cy - anchor_y) * scale) for cx, cy in corners]
 
     def corners_fit_within_image(scale: float) -> bool:
         pts = scaled_corners(scale)
-        return all(
-            point_within_rotated_image(nx, ny, rotation, img_w, img_h) for nx, ny in pts
-        )
+        return all(point_within_rotated_image(nx, ny, rotation, img_w, img_h) for nx, ny in pts)
 
     if corners_fit_within_image(1.0):
         scale = 1.0
@@ -578,18 +555,13 @@ def draw_custom_image(op, region) -> None:
         (image_size[0], 0.0),
         (0.0, 0.0),
     ]
-    positions = [
-        rotated_image_to_region(region, image_size, px, py, rotation)
-        for px, py in corners_local
-    ]
+    positions = [rotated_image_to_region(region, image_size, px, py, rotation) for px, py in corners_local]
     uvs = [(0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0)]
 
     op.image_shader.bind()
     op.image_shader.uniform_sampler("image", op._image_gpu_texture)
     op.image_shader.uniform_float("color", (1.0, 1.0, 1.0, 1.0))
-    image_batch = batch_for_shader(
-        op.image_shader, "TRI_FAN", {"pos": positions, "texCoord": uvs}
-    )
+    image_batch = batch_for_shader(op.image_shader, "TRI_FAN", {"pos": positions, "texCoord": uvs})
     image_batch.draw(op.image_shader)
 
 
@@ -610,16 +582,12 @@ def draw_callback_px(op, context) -> None:
         gpu.state.blend_set("ALPHA")
 
         op.shader.bind()
-        fill_batch = batch_for_shader(
-            op.shader, "TRI_FAN", {"pos": (p_bl, p_br, p_tr, p_tl)}
-        )
+        fill_batch = batch_for_shader(op.shader, "TRI_FAN", {"pos": (p_bl, p_br, p_tr, p_tl)})
         op.shader.uniform_float("color", (0.0, 0.0, 0.0, 0.15))
         fill_batch.draw(op.shader)
 
         gpu.state.line_width_set(2.0)
-        outline_batch = batch_for_shader(
-            op.shader, "LINE_LOOP", {"pos": (p_bl, p_br, p_tr, p_tl)}
-        )
+        outline_batch = batch_for_shader(op.shader, "LINE_LOOP", {"pos": (p_bl, p_br, p_tr, p_tl)})
         op.shader.uniform_float("color", (1.0, 1.0, 1.0, 0.9))
         outline_batch.draw(op.shader)
 
@@ -692,9 +660,7 @@ def _grid_lines_at(
     return lines
 
 
-def draw_trim_grid(
-    shader, p_tl: Point, p_tr: Point, p_br: Point, p_bl: Point, mode: str = "COARSE"
-) -> None:
+def draw_trim_grid(shader, p_tl: Point, p_tr: Point, p_br: Point, p_bl: Point, mode: str = "COARSE") -> None:
     if mode == "FINE":
         # 回転中: 9分割の細かいグリッド
         lines = _grid_lines_at(p_tl, p_tr, p_br, p_bl, 9)
@@ -715,9 +681,7 @@ def draw_trim_grid(
         grid_batch.draw(shader)
 
 
-def draw_rotate_dial(
-    shader, center: Point, rotation: float, is_active: bool, trim_bottom_y: float
-) -> None:
+def draw_rotate_dial(shader, center: Point, rotation: float, is_active: bool, trim_bottom_y: float) -> None:
     cx, cy = center
     r = ROTATE_DIAL_RADIUS_PX
     half_segments = 24
@@ -758,17 +722,13 @@ def draw_rotate_dial(
         )
         for i in range(half_segments + 1)
     ]
-    gpu.state.line_width_set(
-        ROTATE_DIAL_LINE_WIDTH if is_active else ROTATE_DIAL_LINE_WIDTH_INACTIVE
-    )
+    gpu.state.line_width_set(ROTATE_DIAL_LINE_WIDTH if is_active else ROTATE_DIAL_LINE_WIDTH_INACTIVE)
     ring_batch = batch_for_shader(shader, "LINE_STRIP", {"pos": ring_pts})
     ring_alpha = 0.7 if is_active else 0.4
     shader.uniform_float("color", (1.0, 1.0, 1.0, ring_alpha))
     ring_batch.draw(shader)
 
-    def draw_dot(
-        pos: Point, radius: float, color: tuple[float, float, float, float]
-    ) -> None:
+    def draw_dot(pos: Point, radius: float, color: tuple[float, float, float, float]) -> None:
         px, py = pos
         pts = []
         segs = 8

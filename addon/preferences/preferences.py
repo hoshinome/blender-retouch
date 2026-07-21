@@ -5,7 +5,7 @@ from ... import __package__, addon_updater_ops
 
 
 @addon_updater_ops.make_annotations
-class RETOUCH_MT_updater(AddonPreferences):
+class BRPreferences(AddonPreferences):
     bl_idname = __package__
 
     auto_check_update = bpy.props.BoolProperty(
@@ -74,4 +74,6 @@ class RETOUCH_MT_updater(AddonPreferences):
         # ops.url=addon_updater_ops.updater.website
 
 
-classes = (RETOUCH_MT_updater,)
+classes = (
+    BRPreferences,
+)

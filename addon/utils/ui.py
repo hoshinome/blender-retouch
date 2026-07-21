@@ -59,7 +59,8 @@ def is_retouch_group_applied(context):
     if not (scene := context.scene):
         return False
 
-    def is_retouch(name): return name == NODETREE_NAME or name.startswith(f"{NODETREE_NAME}.")
+    def is_retouch(name):
+        return name == NODETREE_NAME or name.startswith(f"{NODETREE_NAME}.")
 
     if group := getattr(scene, "compositing_node_group", None):
         return is_retouch(group.name)
@@ -67,8 +68,4 @@ def is_retouch_group_applied(context):
     if not (tree := get_compositor_tree(context)):
         return False
 
-    return is_retouch(tree.name) or any(
-        is_retouch(n.node_tree.name)
-        for n in tree.nodes
-        if n.type == "GROUP" and n.node_tree
-    )
+    return is_retouch(tree.name) or any(is_retouch(n.node_tree.name) for n in tree.nodes if n.type == "GROUP" and n.node_tree)

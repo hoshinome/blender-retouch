@@ -1,5 +1,6 @@
-import bpy
 import os
+
+import bpy
 
 NODETREE_NAME = "BlenderRetouch_Nodes"
 
@@ -36,9 +37,7 @@ def get_or_create_node(
 def find_film_grain_node(node_tree: bpy.types.NodeTree) -> bpy.types.Node | None:
     matches = [n for n in node_tree.nodes if "film grain" in n.name.lower()]
     if len(matches) > 1:
-        raise ValueError(
-            f"Multiple nodes matching 'film grain' found: {[n.name for n in matches]}"
-        )
+        raise ValueError(f"Multiple nodes matching 'film grain' found: {[n.name for n in matches]}")
     return matches[0] if matches else None
 
 
@@ -70,10 +69,7 @@ def connect_to_outputs(
         group_out = node_tree.nodes.new(type="NodeGroupOutput")
         group_out.location = group_out_location
 
-    socket_names = [
-        s.name for s in node_tree.interface.items_tree
-        if s.item_type == "SOCKET" and s.in_out == "OUTPUT"
-    ]
+    socket_names = [s.name for s in node_tree.interface.items_tree if s.item_type == "SOCKET" and s.in_out == "OUTPUT"]
     if "Image" not in socket_names:
         node_tree.interface.new_socket(name="Image", in_out="OUTPUT", socket_type="NodeSocketColor")
 
@@ -131,11 +127,12 @@ def _pick_appended_group(nodetree_name: str, before_names: set[str]) -> bpy.type
 
     matches = [n for n in new_names if n == nodetree_name or n.startswith(f"{nodetree_name}.")]
     if matches:
+
         def sort_key(name: str) -> tuple[int, int]:
             if name == nodetree_name:
                 return (0, 0)
             try:
-                suffix = name[len(nodetree_name) + 1:]
+                suffix = name[len(nodetree_name) + 1 :]
                 return (1, int(suffix))
             except ValueError:
                 return (1, 9999)
