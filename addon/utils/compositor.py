@@ -276,6 +276,9 @@ def apply_retouch_to_scene(
     if group_tree is None:
         return None
 
+    if not connect_film_grain_node(operator, group_tree):
+        return None
+
     if not _assign_compositing_group(scene, group_tree):
         operator.report({"ERROR"}, "Cannot assign compositor group in this Blender version.")
         return None

@@ -12,7 +12,6 @@ from ..utils.compositor import (
     find_or_create_image_node,
     connect_to_outputs,
     apply_retouch_to_scene,
-    connect_film_grain_node,
 )
 
 
@@ -67,9 +66,6 @@ class RETOUCH_OT_add_nodes(Operator, ImportHelper):
 
         scene = apply_retouch_to_scene(self, context, self.filepath, blend_file_path, NODETREE_NAME)
         if scene is None:
-            return {"CANCELLED"}
-
-        if not connect_film_grain_node(self, scene.compositing_node_group):
             return {"CANCELLED"}
 
         try:
