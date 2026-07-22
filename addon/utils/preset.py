@@ -7,6 +7,22 @@ import bpy
 
 IGNORED_NODE_TYPES = {"IMAGE", "VIEWER", "GROUP_OUTPUT"}
 
+# The current preset format version, written into every preset saved by this
+# version of the addon.
+PRESET_FORMAT_VERSION = 1
+
+# The minimum preset version this addon version is able to load. Presets
+# older than this will still load, but a warning is shown.
+MIN_SUPPORTED_PRESET_VERSION = 1
+
+
+def is_version_supported(preset_version: int, min_version: int = MIN_SUPPORTED_PRESET_VERSION) -> bool:
+    try:
+        return int(preset_version) >= int(min_version)
+    except (TypeError, ValueError):
+        return False
+
+
 # --- Path & Folder Management ---
 
 
@@ -236,10 +252,10 @@ def serialize_node(node: bpy.types.Node) -> dict:
 
 def capture_preset(tree: bpy.types.NodeTree | None) -> dict:
     if tree is None:
-        return {"version": 1, "nodes": []}
+        return {"version": PRESET_FORMAT_VERSION, "nodes": []}
 
     return {
-        "version": 1,
+        "version": PRESET_FORMAT_VERSION,
         "nodes": [serialize_node(node) for node in tree.nodes if getattr(node, "bl_idname", None) and node.type not in IGNORED_NODE_TYPES],
     }
 
@@ -301,12 +317,6 @@ def restore_curve_mapping(mapping, data: dict) -> None:
 
 
 def restore_node_state(node: bpy.types.Node, node_data: dict) -> None:
-    if node_data.get("location"):
-        try:
-            node.location = tuple(node_data["location"])
-        except Exception:
-            pass
-
     input_lookup = {socket.identifier: socket for socket in node.inputs}
     input_lookup.update({socket.name: socket for socket in node.inputs})
 
