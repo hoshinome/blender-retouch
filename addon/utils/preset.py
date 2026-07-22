@@ -16,6 +16,14 @@ PRESET_FORMAT_VERSION = 1
 MIN_SUPPORTED_PRESET_VERSION = 1
 
 
+def is_valid_preset_version(preset_version) -> bool:
+    try:
+        int(preset_version)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
 def is_version_supported(preset_version: int, min_version: int = MIN_SUPPORTED_PRESET_VERSION) -> bool:
     try:
         return int(preset_version) >= int(min_version)

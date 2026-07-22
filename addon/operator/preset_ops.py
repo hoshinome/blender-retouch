@@ -17,6 +17,7 @@ from ..utils.preset import (
     get_preset_dir,
     get_preset_extension,
     is_version_supported,
+    is_valid_preset_version,
     MIN_SUPPORTED_PRESET_VERSION,
 )
 
@@ -83,7 +84,9 @@ class RETOUCH_OT_load_preset(Operator):
 
         preset_version = payload.get("version")
         version_warning = None
-        if preset_version is not None and not is_version_supported(preset_version):
+        if preset_version is not None and not is_valid_preset_version(preset_version):
+            version_warning = f"preset version {preset_version!r} is invalid or unrecognized"
+        elif preset_version is not None and not is_version_supported(preset_version):
             version_warning = f"preset version {preset_version} is older than the minimum supported version {MIN_SUPPORTED_PRESET_VERSION}"
 
         node_lookup = {node.name: node for node in tree.nodes}
