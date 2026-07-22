@@ -16,6 +16,9 @@ from ..utils.preset import (
     restore_node_state,
     get_preset_dir,
     get_preset_extension,
+    is_version_supported,
+    is_valid_preset_version,
+    MIN_SUPPORTED_PRESET_VERSION,
 )
 
 
@@ -79,21 +82,35 @@ class RETOUCH_OT_load_preset(Operator):
             self.report({"ERROR"}, f"Preset not found: {preset_name}")
             return {"CANCELLED"}
 
+        preset_version = payload.get("version")
+        version_warning = None
+        if preset_version is not None and not is_valid_preset_version(preset_version):
+            version_warning = f"preset version {preset_version!r} is invalid or unrecognized"
+        elif preset_version is not None and not is_version_supported(preset_version):
+            version_warning = f"preset version {preset_version} is older than the minimum supported version {MIN_SUPPORTED_PRESET_VERSION}"
+
         node_lookup = {node.name: node for node in tree.nodes}
+        restored_count = 0
+        missing_nodes = []
         for node_data in payload.get("nodes", []):
             node_name = node_data.get("name")
             node = node_lookup.get(node_name)
             if node is None:
-                try:
-                    node = tree.nodes.new(type=node_data.get("type", "NodeReroute"))
-                    node.name = node_name
-                    node.label = node_data.get("label", node_name)
-                except Exception:
-                    continue
+                missing_nodes.append(node_name)
+                continue
             restore_node_state(node, node_data)
-            node_lookup[node_name] = node
+            restored_count += 1
 
-        self.report({"INFO"}, f"Loaded preset: {preset_name}")
+        messages = []
+        if version_warning:
+            messages.append(version_warning)
+        if missing_nodes:
+            messages.append(f"{restored_count} nodes restored, {len(missing_nodes)} not found in scene: {', '.join(missing_nodes)}")
+
+        if messages:
+            self.report({"WARNING"}, f"Loaded preset: {preset_name} ({'; '.join(messages)})")
+        else:
+            self.report({"INFO"}, f"Loaded preset: {preset_name}")
         return {"FINISHED"}
 
 
